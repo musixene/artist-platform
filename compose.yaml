@@ -1,0 +1,23 @@
+services:
+  artist:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN to your artist HTTPS origin}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      BRANDING_FILE: /config/branding.json
+    volumes:
+      - artist-data:/data
+      - ./branding.json:/config/branding.json:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+volumes:
+  artist-data:

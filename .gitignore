@@ -1,0 +1,9 @@
+node_modules/
+data/
+.env
+*.log
+coverage/
+playwright-report/
+test-results/
+branding.json
+.npm-cache/
