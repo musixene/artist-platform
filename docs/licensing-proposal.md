@@ -1,60 +1,36 @@
-# DRAFT — Musixene CPAL 1.0 licensing review
+# Musixene Artist Platform — CPAL 1.0 licensing decision
 
-> REVIEW DOCUMENT ONLY. This document does not adopt CPAL 1.0 or grant software reuse rights. The formal license must be approved before adding a LICENSE file or changing licensing metadata. No production deployment is affected.
+**Status: Adopted, November 16, 2026 (UTC).** The repository-root [LICENSE](../LICENSE), including completed Exhibits A and B, governs. This explanation does not replace the license.
 
-## Project identity and scope
+## Copyright and identity
 
-Musixene is a music platform that contributes independently deployable artist-branded software to the artistic community. It is not a nonprofit, a SaaS operator, or a hosting/support provider. Artists operate their own instances and independently control their own brands, servers, domains, accounts, creative content and integrations.
+- **© 2026 Musixene**
+- **Musixene is a trade name of Clara Vista Entertainment LLC.**
+- Original Code: Musixene Artist Platform
+- Original Developer and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC)
+- SPDX: CPAL-1.0
+- No alternative/dual-license permission is intended.
 
-Musixene encourages independent management of the creative and commercial relationship with listeners. It does not register copyright claims, determine whether a preview is published, or guarantee against copying and other misuse.
+## Exhibit B — required attribution
 
-Public copyright notice: **© 2026 Musixene**. Legal clarification: **Musixene is a trade name of Clara Vista Entertainment LLC.**
+- Copyright notice: **© 2026 Musixene**
+- Phrase: **Powered by an Open Source Concept from Musixene**
+- URL: **https://musixene.com**
+- Graphic: no additional graphic required.
+- Display of attribution in Larger Works: **required**.
 
-## Candidate open-source license
+CPAL Section 14 specifies prominent GUI attribution at launch/session start; Section 15 addresses external network deployment and source availability. A footer alone may not establish first-screen visibility on small devices. Include the required wording and copyright near the beginning of the sign-in and administration experience and verify it on real devices.
 
-**Common Public Attribution License Version 1.0 (CPAL-1.0)**
+Covered software is licensed; an artist's independently owned recordings, artwork, listener data and other private content are not automatically licensed merely because the platform handles them. Artists operate their own independent deployments. Musixene provides no mandatory hosting, technical support, registration service, payments or guarantees. The software is supplied AS IS under the license.
 
-Official terms: https://opensource.org/license/CPAL-1.0
+## Maintainer release checklist
 
-- Section 14 permits an Original Developer to require modest, prominent GUI attribution, as specified in Exhibit B.
-- Section 15 treats external network deployment as distribution for applicable source-code availability duties.
-- Sections 3.2, 3.3, 3.5 and 3.6 impose duties for source availability, change records, source-file notices and executable notices.
-- Section 7 includes an AS IS warranty disclaimer, subject to applicable law.
-- Section 14(d) does not give recipients unrestricted Musixene trademark rights.
+1. Keep the official CPAL license, completed Exhibits A/B, and applicable Exhibit A notices in covered source files or relevant adjacent NOTICE files for formats without comments.
+2. Preserve exact linked UI attribution and source availability for relevant network deployments and modifications.
+3. Maintain dated modification descriptions in [CHANGES.md](../CHANGES.md).
+4. Confirm rights in contributed material and third-party assets; do not assign others' contributions to Musixene without permission.
+5. Audit Git history and the production release for secrets, personal information and unlicensed media.
+6. Rerun test suites and physically inspect mobile UI, PWA and lock-screen behavior after changes.
+7. Consider appropriate legal review of the CPAL and its exhibit configuration, especially larger-work attribution and downstream compatibility.
 
-The software license covers the covered software, not an artist's separately uploaded recordings, compositions, interviews, images, listener data or transactions simply because the software handles them.
-
-## Proposed Exhibit A identifiers — not yet adopted
-
-Original Code: **Musixene Artist Platform**
-
-Original Developer and Initial Developer: **Musixene (a trade name of Clara Vista Entertainment LLC)**.
-
-Copyright display in source notices: **© 2026 Musixene**.
-
-The standard Exhibit A notice must be completed and positioned in covered source files (or an appropriate nearby directory notice for files whose structure prevents inclusion). Rights in external contributions and AI-assisted work must be reviewed; do not assert that Musixene wrote or owns every third-party contribution. No alternative license or dual-license permission has been approved.
-
-## Proposed Exhibit B attribution — not yet adopted
-
-**Attribution Phrase:** Powered by an Open Source Concept from Musixene
-
-**Attribution URL:** https://musixene.com
-
-**Graphic image:** None requested.
-
-**Attribution Copyright Notice:** Legal and source notices will identify © 2026 Musixene; whether Exhibit B should require this *additionally* in the visible user interface needs final review. The desired listener-facing acknowledgment is the exact linked phrase above.
-
-**Display in Larger Works:** Propose REQUIRED, subject to review of compatibility and downstream effect. This is important to Musixene's goal of retaining attribution when the platform is embedded in another artist-branded application.
-
-Section 14 calls for prominent notice on initial run/session. Current app and admin footers display the link, but their visibility on initial mobile views has not been verified. Review whether a small, visible sign-in and/or About presentation is needed while keeping artist branding primary and the exact phrase unchanged.
-
-## Requirements before an actual license grant
-
-1. Verify the rights-holder and authority to license the code, including any third-party assets or contributions.
-2. Review CPAL and its exhibits with appropriately qualified legal counsel; confirm the larger-works option and whether an Exhibit B copyright notice is desired on screen.
-3. Review current tracked files and Git history for credentials, personal data, copyrighted music or other undistributable material.
-4. Upon authorization, add the verbatim official CPAL 1.0 license with correctly completed exhibits; apply the specified notices, license metadata and contributor/change-history requirements.
-5. Update application attribution placement and an accessible source-code location if necessary, test these changes, and merge to main only after the public-release gate is cleared.
-6. Preserve the existing feature branch and LP-19 deployment until a separate reviewed release is ready.
-
-The requested attribution should not suggest that Musixene operates, supports or guarantees individual artist deployments. A license cannot exclude commercial users and still satisfy the usual Open Source Definition.
+Adoption of the source license does **not** deploy or modify the LP-19 production instance or the legacy listening room.
