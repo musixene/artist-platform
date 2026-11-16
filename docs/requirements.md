@@ -35,7 +35,7 @@ Status: architecture and metering direction accepted; first installation/authent
 
 No copyright registration, creative provenance, recording production, artist business operations, or determination of legal publication. Musixene supplies neither hosting nor technical support. Initial scope excludes shared multi-artist hosting, native apps, offline audio, DRM guarantees, public social feeds, and mandatory payment providers or external telemetry.
 
-The intended software is AS IS under a final approved open-source license. CPAL 1.0 is only a candidate; these documents do not grant a license.
+The covered platform software is licensed under CPAL 1.0 (see LICENSE), including its attribution and source-availability obligations. It is provided AS IS.
 
 ## Decisions required before implementation
 
@@ -43,7 +43,7 @@ The intended software is AS IS under a final approved open-source license. CPAL 
 2. Refine the accepted renewable-allowance direction into an approved [metering protocol](credit-metering-review.md): playback-duration evidence, reservations, incremental settlement, reconciliation, missing-event policy, fractional precision, rate snapshots, concurrency, refunds/reversals, expiry, and transferability. Sessions must never introduce a fixed charge.
 3. Define account registration, administrator bootstrap/recovery, listener recovery, and any optional email configuration.
 4. Approve analytics events, retention, account/data deletion, feedback handling, and export permissions.
-5. Approve license, contribution terms, and attribution placement. Exact wording and destination remain fixed requirements.
+5. Maintain adopted CPAL 1.0 compliance, source notices, contribution rights and required attribution. Exact wording and destination remain fixed requirements.
 
 ## Release evidence
 

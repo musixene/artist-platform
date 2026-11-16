@@ -49,5 +49,9 @@ A first container smoke attempt failed after restart because the test retained a
 - Schema-1 fixtures migrate twice without changing original user/password/session/track fields or media bytes; existing session access, old-password login and range playback work after migration. Injected migration failure rolls back new columns and version changes; retry succeeds after the conflict is removed. Newer schema versions are rejected.
 - Automated stopped-instance tar backup/isolated restore: synthetic accounts, sessions, music bytes, saved settings and collection order survive; restored login and range playback pass. This validates the archive procedure locally; the documented Compose backup/deployment commands have not been executed against a live deployment in this change.
 - `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser`: **3 passed**, covering existing real audio/player behavior and mobile layout plus administrator login, branding/signup edits, draft audio upload/publication, ordered collection creation, invitation signup, listener collection filtering and administrator-page denial. The administrator viewport also has no horizontal overflow at 390px.
-- Exact linked attribution remains on listening and administration pages. Credits remain disabled; CPAL remains undecided.
+- Exact linked attribution remains on listening and administration pages. Credits remain disabled; CPAL 1.0 was subsequently adopted.
 - No production services, `stream.musixene.live`, or backed-up MP3s were accessed or modified. Container rebuild/TLS deployment, physical mobile devices, full accessibility/security/load audits remain untested for this change.
+
+## Licensing changes awaiting fresh tests
+
+The previous automated test records predate the CPAL 1.0 license, UI notice and source-header changes. Rerun Node and browser suites, inspect attribution visibility on physical mobile devices, and verify any deployed instance makes its corresponding covered source available. No new test pass is asserted here.
