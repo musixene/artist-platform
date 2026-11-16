@@ -4,9 +4,9 @@ Status: reference architecture and metering investigation direction accepted. In
 
 ## Phase 0 — Review the foundation
 
-The single-artist modular monolith, transactional SQLite, private local media, container deployment, local accounts, artist-controlled configuration, authenticated byte ranges, and optional later PostgreSQL/object storage are approved. Review remaining layout, framework, requirements, and roadmap details. Resolve the metering protocol and other policy decisions. Evaluate CPAL 1.0 and alternatives for attribution, redistribution, compatibility, and contribution terms.
+The single-artist modular monolith, transactional SQLite, private local media, container deployment, local accounts, artist-controlled configuration, authenticated byte ranges, and optional later PostgreSQL/object storage are approved. Review remaining layout, framework, requirements, and roadmap details. Resolve the metering protocol and other policy decisions. CPAL 1.0 has been adopted; verify attribution, source availability, notices and contributor compatibility for releases.
 
-Exit: reviewed scope, decision records, clear licensing status, and explicit authorization to implement. Approve contribution terms before accepting external code; final license approval is required before software release.
+Exit: reviewed scope, decision records, clear licensing status, and explicit authorization to implement. Approve contribution terms before accepting external code; adopted CPAL terms and notices require release compliance verification.
 
 ## Phase 1 — Prove platform feasibility
 
@@ -46,7 +46,7 @@ Exit: sandbox purchase/reversal tests pass without production credentials or rea
 
 ## Review priorities
 
-Preserve the approved baseline. Select framework/runtime and resolve metering semantics before ledger implementation and validate mobile behavior before promising support. Resolve licensing and attribution before publishing software. Use isolated infrastructure and synthetic data throughout development unless separately authorized.
+Preserve the approved baseline. Select framework/runtime and resolve metering semantics before ledger implementation and validate mobile behavior before promising support. Maintain CPAL attribution, source availability and contributor notices when publishing software. Use isolated infrastructure and synthetic data throughout development unless separately authorized.
 
 ## Current delivery status
 
