@@ -1,53 +1,45 @@
-# Phased development roadmap
+# Development roadmap
 
-Status: reference architecture and metering investigation direction accepted. Initial installation/authentication/player/PWA development is authorized and delivered. Phases express dependencies and review gates, not calendar commitments; later features remain planned.
+The approved baseline is Node.js 24, plain browser modules, SQLite, private local media, local accounts and a single-artist modular monolith. CPAL 1.0 is adopted; preserve required attribution, source availability, notices and contributor rights. No mandatory Musixene account, hosting or central service is proposed.
 
-## Phase 0 — Review the foundation
+This sequence follows the project continuity directive. See the [audit and scoped development proposals](development-review.md) for current test evidence, findings, physical-device procedures and decisions requiring review. Prior phase numbers are historical, not implementation-order requirements.
 
-The single-artist modular monolith, transactional SQLite, private local media, container deployment, local accounts, artist-controlled configuration, authenticated byte ranges, and optional later PostgreSQL/object storage are approved. Review remaining layout, framework, requirements, and roadmap details. Resolve the metering protocol and other policy decisions. CPAL 1.0 has been adopted; verify attribution, source availability, notices and contributor compatibility for releases.
+## 1. Repository, regression and mobile validation
 
-Exit: reviewed scope, decision records, clear licensing status, and explicit authorization to implement. Approve contribution terms before accepting external code; adopted CPAL terms and notices require release compliance verification.
+Current baseline: main `14429c3`, application 0.1.0, schema 2. Administration/authentication/upload/collection/player/PWA features are delivered. Fresh audit: 21 Node tests pass; Chromium has two passes and one attribution-locator failure after licensing changes. Physical-device behavior remains unverified.
 
-## Phase 1 — Prove platform feasibility
+First propose a focused maintenance PR: repair attribution regression assertions and desktop notice grid placement, include license/notice files in the image, align release guidance with reviewed main revisions, and verify corresponding-source provenance. Add appropriate PR checks. No code fixes are included in the audit itself.
 
-After authorization, use generated audio in isolated infrastructure to test authenticated byte-range delivery, short-lived grants, installation, seeking, background playback, screen lock, interruptions, and Bluetooth on real Android/iOS devices. Validate SQLite durability and private local media backup/restore. Investigate cumulative metering, reservation recovery, and mobile event loss without assuming background timers remain active; credit deductions remain unauthorized; use the disabled accounting boundary for this phase. Select frameworks, versions, formats, baseline hardware, and capacity targets.
+Run the physical Android/iOS browser/installed-PWA checklist against a separately authorized synthetic HTTPS test installation. Record installation, long locked/background playback, natural track advancement, lock-screen metadata/actions, Bluetooth, interruptions/connectivity, session recovery, accessibility and attribution visibility. Browser emulation is not physical-device evidence. Record failures, unsupported cases and unknowns before promising support.
 
-Exit: reproducible independent deployment, selected stack, and supported-platform matrix with limitations. Bring unmet mobile requirements back for a scope decision before expanding development.
+## 2. Likes and private Note to Artist
 
-## Phase 2 — Build a secure vertical slice
+After review, add idempotent track likes, caller-only state and private track-specific written notes. Administrators receive authorized, paginated track/listener feedback views; other listeners cannot access private notes. Retain the simple same-origin application and uninterrupted player.
 
-Create approved scaffolding, CI, migrations, synthetic fixtures, and deployment configuration. Add administrator bootstrap, listener accounts/recovery, roles, artist branding, private uploads, collections, authorized playback, attribution, health checks, and documentation.
+Approve note length/multiplicity, editing/deletion, unpublished-track access, retention, abuse limits and export/account-deletion policies before finalizing schema 3. Require safe additive migrations, existing-account/media preservation, two-user privacy tests, server authorization, CSRF/origin failures, durable state, inert text rendering and browser interaction tests.
 
-Exit: a fresh isolated installation lets an administrator publish synthetic content and a listener play it. Negative authorization, upload validation, session, private-storage, and basic accessibility checks pass.
+## 3. Playback analytics
 
-## Phase 3 — Add credits and manual administration
+After feedback, define an explicit event/privacy/retention policy and implement estimated playback reporting and an administrator dashboard. Distinguish selections, starts, observed progress, reported completions and explicit skips. Missing events and browser suspension remain uncertainty; downloaded bytes and wall-clock time are not verified listening.
 
-Only after metering approval and implementation authorization, implement per-minute fractional rates, reservations, incremental consumption, reconciliation, append-only ledger, audited manual grants/adjustments, rate versions, and clear held/available/consumed balances. Exercise pauses, buffering, seeks, replay, shuffle, concurrent sessions, duplicates, event gaps, mobile suspension, reconnects, interrupted settlement, free content, reversals, rounding, and price changes.
+Require idempotency, sequence validation, conservative duration estimates, seek/pause/buffering exclusion, bounded storage/retention, deletion/export controls and authorization tests. Telemetry failures must never block music. No external tracker or public listener activity by default. Review analytics separately from credits.
 
-Exit: balances reconcile; retries cannot double-charge; concurrent sessions cannot overspend; duration-based consumption matches approved policy; no paused/buffering time is charged; uncertain intervals follow the explicitly reviewed policy. No payment integration is required.
+## 4. Listener credits and metered consumption — gated
 
-## Phase 4 — Complete the feedback ecosystem
+Prepaid credits consumed proportionally at artist-configurable per-minute rates remain the approved direction, including free and differentiated content. Candidate protocol: renewable allowances, cumulative progress and incremental reconciliation. Approve the charging policy and explicitly authorize implementation before actual deductions.
 
-Add likes, private feedback, artist analytics, retention/deletion workflows, and portable exports. Verify privacy permissions, aggregate accuracy, and accessibility through complete workflows.
+Requirements: exact integer subdivisions, append-only ledger, administrator grants/adjustments, transactional reservations/settlement, idempotency/concurrency, distinct available/held/consumed balances, no session fee, no paused/buffering charges, explicit seek/replay/failure treatment and listener-favorable uncertainty. Background JavaScript suspension must not unnecessarily interrupt music. Current accounting remains disabled; this roadmap does not authorize activation.
 
-Exit: unrelated listeners cannot access private feedback/activity; analytics match synthetic scenarios; approved privacy and export criteria pass.
+## 5. Operational hardening and portability
 
-## Phase 5 — Harden independent operation and release
+Keep hardening alongside each release: security limitations, migration/rollback safety, repeatable install/upgrade, verified backups/isolated restore, retention/deletion/export, portability, accessibility, codec/resource limits, diagnostics, CI/reproducible releases and optional PWA branding/icons. Never overwrite a live database, delete persistent volumes or destroy existing music during routine upgrades. No central management platform.
 
-Complete install, upgrade, monitoring, backup, restore, and migration-failure guidance. Restore into a fresh isolated deployment and verify accounts, media, collections, balances, and permissions. Run security, accessibility, load, and real-device regressions. Publish supported versions, limitations, security reporting, contribution guidance, and approved license/notices.
+## 6. Optional commerce and extended artist material
 
-Exit: required acceptance evidence recorded, critical defects resolved, and an independent operator can install, maintain, and restore without Musixene access. Release review confirms license and attribution compliance. Production deployment requires separate authorization.
+After relationship, analytics and approved credit foundations, consider artist-chosen optional processors, purchases, merchandise-linked credits and additional artist-controlled material. Verify signatures, duplicate/retry/reversal handling and rights in contributed material. Preserve useful free deployments; avoid premature commerce infrastructure.
 
-## Phase 6 — Optional commerce integrations
+## Workflow and release gates
 
-After manual credits are stable, select an artist-requested provider. Implement verified, idempotent events, credit grants, refunds/chargebacks, reconciliation, and operator setup. Keep credentials out of source and clients; deployments without commerce remain functional.
+Start focused branches from current main; make understandable commits and submit PRs for review instead of pushing directly to main. Align README, requirements, architecture, operations, roadmap and dated change history with delivered behavior. Preserve the exact linked Musixene attribution and covered-source notices.
 
-Exit: sandbox purchase/reversal tests pass without production credentials or real transactions. Further features require separate scope decisions.
-
-## Review priorities
-
-Preserve the approved baseline. Select framework/runtime and resolve metering semantics before ledger implementation and validate mobile behavior before promising support. Maintain CPAL attribution, source availability and contributor notices when publishing software. Use isolated infrastructure and synthetic data throughout development unless separately authorized.
-
-## Current delivery status
-
-Phase 0 baseline and metering direction are accepted. The initial slice of Phases 1–2 supplies Node 24/SQLite/private media, container packaging, local listeners, operator import/recovery, configurable branding, player controls, PWA shell, and desktop automated tests. Schema 2 adds administrator bootstrap/roles, invite-only signup, single-use invitations, listener management, secure uploads, track controls, collections and saved branding, with migration/restore and browser tests. Physical Android/iOS feasibility and production hardening remain open. Phase 3 deductions have not begun; investigation must preserve background continuity when accounting callbacks are suspended. Phases 4–6 are not implemented.
+Implementation, automated checks, physical-device evidence and production readiness are separate claims. Code changes, GitHub merges and live deployment are separate actions. Neither `app.lp19music.com` nor `stream.musixene.live` may be accessed or modified without explicit authorization. Authorized production work must first verify actual deployed revision, configuration, backups, migration/rollback plan and post-deployment checks. Preserve both music collections and their backups.

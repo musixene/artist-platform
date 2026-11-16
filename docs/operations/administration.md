@@ -53,9 +53,11 @@ tar -tzf "$musixene_backup/data.tar.gz" >/dev/null
 Run the backup block with `set -e` in a script, or check each command's exit status interactively before proceeding. Build/deploy the reviewed branch after the backup succeeds:
 
 ```sh
-git fetch origin feature/initial-artist-platform
-git switch feature/initial-artist-platform
-git pull --ff-only origin feature/initial-artist-platform
+git fetch origin main
+git switch main
+git pull --ff-only origin main
+# Verify this is the reviewed release revision before proceeding.
+git rev-parse HEAD
 npm ci
 npm test
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser  # or install Playwright Chromium
@@ -80,3 +82,7 @@ DATA_DIR=/tmp/artist-platform-restore APP_ORIGIN=http://localhost:3200 PORT=3200
 Keep this instance on loopback with a distinct origin. Verify account login, catalog counts, artwork, collection order, full/range audio bytes and filesystem counts. For real sensitive media, use a secure operator-controlled isolated host; automated tests use only synthetic data. Do not test against the protected streaming host or its MP3 backups. Restore drills can apply migrations to the copy; they do not replace the original backup.
 
 Rollback requires the recorded previous code revision **and a complete stopped-instance pre-upgrade data restore**. Schema downgrade is not supported. Stop the service, retain the failed upgraded volume for investigation, restore the archive into a separate empty volume, point Compose at it, and deploy the recorded previous revision with its saved configuration. Never overlay a database while leaving newer WAL files, and never use `docker compose down -v` as an upgrade step. Post-backup changes must be separately reconciled.
+
+## Corresponding source for a release
+
+Record the exact reviewed commit and any deployment modifications with each image release. Retain its corresponding covered source and notices, and make that source available under CPAL for network deployments. The application links to the public repository; modified operators must ensure that link or their accompanying source offer actually provides their deployed covered modifications. Artist media, credentials and listener data do not belong in source archives. Runtime images include LICENSE, NOTICE and CHANGES.md. Never infer a live revision from the current GitHub branch.
