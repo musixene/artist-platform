@@ -41,8 +41,8 @@ The covered platform software is licensed under CPAL 1.0 (see LICENSE), includin
 
 1. Validate Node.js 24/plain browser modules and select the supported mobile/browser matrix within the approved single-artist, modular monolith, container, SQLite, private-local-storage, local-account, authenticated-byte-range baseline. PostgreSQL and object storage are optional later expansions.
 2. Refine the accepted renewable-allowance direction into an approved [metering protocol](credit-metering-review.md): playback-duration evidence, reservations, incremental settlement, reconciliation, missing-event policy, fractional precision, rate snapshots, concurrency, refunds/reversals, expiry, and transferability. Sessions must never introduce a fixed charge.
-3. Define account registration, administrator bootstrap/recovery, listener recovery, and any optional email configuration.
-4. Approve analytics events, retention, account/data deletion, feedback handling, and export permissions.
+3. Administrator bootstrap/recovery, invite-only signup and assisted password resets are delivered; optional email and complete account-deletion UI remain future decisions.
+4. Private feedback retention/export/deletion is documented in [privacy controls](privacy.md); approve the separate analytics policy before implementation.
 5. Maintain adopted CPAL 1.0 compliance, source notices, contribution rights and required attribution. Exact wording and destination remain fixed requirements.
 
 ## Release evidence
@@ -55,4 +55,4 @@ Reservations reduce available credits without becoming consumption charges. Sett
 
 ## Current phase coverage
 
-The current application covers local listener authentication, operator configuration/account/media tools, private byte-range playback, queue/seek/shuffle/repeat, PWA shell, and progressive Media Session controls. Browser administration, invitation signup, account roles, private uploads, track controls, collections and branding are implemented with schema-2 preservation tests. Likes, feedback, analytics, portable logical exports, commerce, and metered deductions remain future work. Background accounting event loss must not unnecessarily interrupt playback. See [validation](validation.md) for executed versus physical-device checks.
+The current application covers local listener authentication, operator configuration/account/media tools, private byte-range playback, queue/seek/shuffle/repeat, PWA shell, and progressive Media Session controls. Browser administration, invitation signup, account roles, private uploads, track controls, collections and branding are implemented with schema-2 preservation tests. Private Likes and Note to Artist feedback, caller-only export/deletion, administrator review/removal and schema-3 migration are implemented. Analytics, full-instance logical exports, commerce, and metered deductions remain future work. Background accounting event loss must not unnecessarily interrupt playback. See [validation](validation.md) for executed versus physical-device checks.

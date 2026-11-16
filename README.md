@@ -13,7 +13,7 @@ Musixene is an existing music platform that believes in creative independence an
 - Configurable artist name, tagline, and accent color; container-based reference deployment. No mandatory Musixene infrastructure or external fonts, trackers, identity, or storage services.
 - Service worker caches only the public shell. No offline audio or caching of private APIs/media. PWA installation requires a secure context and browser support.
 
-PostgreSQL and object storage are optional future expansion paths. This phase does not include likes, feedback, analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
+PostgreSQL and object storage are optional future expansion paths. Listeners can like tracks and send private Note to Artist feedback; administrators can filter and review it. See [privacy and feedback controls](docs/privacy.md) for deletion, export and retention behavior. This phase does not include analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
 
 ## Run locally
 
@@ -33,7 +33,7 @@ To customize, copy `branding.example.json` to `branding.json`, edit it, and star
 BRANDING_FILE=./branding.json npm start
 ```
 
-See [installation and operations](docs/operations/running.md) for configuration, importing audio, account recovery and containers. See the [schema-2 administration and deployment guide](docs/operations/administration.md) for tested migrations, consistent backup, deployment and isolated restore commands. The default server binds only to loopback. Physical phones require a reachable HTTPS artist origin; phone localhost refers to the phone itself.
+See [installation and operations](docs/operations/running.md) for configuration, importing audio, account recovery and containers. See the [administration and deployment guide](docs/operations/administration.md) for tested migrations, consistent backup, deployment and isolated restore commands. The default server binds only to loopback. Physical phones require a reachable HTTPS artist origin; phone localhost refers to the phone itself.
 
 ## Tests
 

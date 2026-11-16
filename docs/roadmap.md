@@ -14,9 +14,9 @@ Run the physical Android/iOS browser/installed-PWA checklist against a separatel
 
 ## 2. Likes and private Note to Artist
 
-After review, add idempotent track likes, caller-only state and private track-specific written notes. Administrators receive authorized, paginated track/listener feedback views; other listeners cannot access private notes. Retain the simple same-origin application and uninterrupted player.
+Implemented on the feedback feature branch: idempotent track likes, caller-only state and private track-specific written notes. Administrators receive authorized, paginated track/listener feedback views; other listeners cannot access private notes. Retain the simple same-origin application and uninterrupted player.
 
-Approve note length/multiplicity, editing/deletion, unpublished-track access, retention, abuse limits and export/account-deletion policies before finalizing schema 3. Require safe additive migrations, existing-account/media preservation, two-user privacy tests, server authorization, CSRF/origin failures, durable state, inert text rendering and browser interaction tests.
+The approved proposal uses multiple immutable 2,000-character notes, author deletion, retained own access after unpublishing, administrator removal, persisted abuse limits and paginated private exports; see [privacy controls](privacy.md). Schema 3 is additive. Require safe additive migrations, existing-account/media preservation, two-user privacy tests, server authorization, CSRF/origin failures, durable state, inert text rendering and browser interaction tests.
 
 ## 3. Playback analytics
 

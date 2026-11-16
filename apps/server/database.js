@@ -37,7 +37,7 @@ export function openDatabase(directory) {
     );
   `);
   const version = db.prepare('SELECT max(version) AS version FROM schema_version').get().version;
-  if (version > 2) { db.close(); throw new Error('Database schema is newer than this application'); }
+  if (version > 3) { db.close(); throw new Error('Database schema is newer than this application'); }
   if (version < 2) {
     try {
       db.exec(`BEGIN IMMEDIATE;
@@ -61,6 +61,36 @@ export function openDatabase(directory) {
           position INTEGER NOT NULL, PRIMARY KEY(collection_id, track_id)
         );
         INSERT INTO schema_version VALUES (2);
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
+  }
+  if (version < 3) {
+    try {
+      db.exec(`BEGIN IMMEDIATE;
+        CREATE TABLE track_likes (
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL, PRIMARY KEY(user_id,track_id)
+        );
+        CREATE INDEX likes_by_track ON track_likes(track_id,created_at);
+        CREATE TABLE track_notes (
+          id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+          body TEXT NOT NULL, created_at INTEGER NOT NULL, request_id TEXT NOT NULL,
+          UNIQUE(user_id,request_id)
+        );
+        CREATE INDEX notes_by_track ON track_notes(track_id,created_at,id);
+        CREATE INDEX notes_by_user ON track_notes(user_id,created_at,id);
+        CREATE TABLE feedback_write_limits (
+          user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          window_start INTEGER NOT NULL, writes INTEGER NOT NULL
+        );
+        CREATE TABLE privacy_audit (
+          id INTEGER PRIMARY KEY, actor_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+          action TEXT NOT NULL, created_at INTEGER NOT NULL
+        );
+        CREATE INDEX privacy_audit_time ON privacy_audit(created_at);
+        INSERT INTO schema_version VALUES(3);
         COMMIT;`);
     } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
   }

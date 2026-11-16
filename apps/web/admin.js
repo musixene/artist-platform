@@ -8,6 +8,7 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
+import { mountFeedbackAdmin } from './feedback-ui.js';
 const $ = id => document.getElementById(id);
 let csrf = '', state;
 function el(tag, text) { const node=document.createElement(tag); if(text!==undefined) node.textContent=text; return node; }
@@ -27,6 +28,7 @@ async function run(action,b) { if(b)b.disabled=true; try { await action(); statu
 function form(parent,save,label='Save') { const f=el('form'); const submit=el('button',label); submit.type='submit'; f.addEventListener('submit',event=>{event.preventDefault(); run(()=>save(),submit);}); parent.append(f); return { f, finish(){ f.append(submit); } }; }
 async function refresh() { state=await api('/api/admin/state'); render(); }
 function render() {
+  mountFeedbackAdmin($('feedback'),(path,options={})=>api(path,options.body===undefined?undefined:JSON.parse(options.body)),state);
   for(const id of ['settings-form','invite-form','invite-list','listener-list','track-form','track-list','collection-new','collection-list']) $(id).replaceChildren();
   const settings=form($('settings-form'),async()=>{await api('/api/admin/settings',{name:name.value,tagline:tagline.value,accent:accent.value,registration:registration.checked});await refresh();});
   const name=field(settings.f,'Artist name',state.settings.name), tagline=field(settings.f,'Tagline',state.settings.tagline), accent=field(settings.f,'Accent color',state.settings.accent,'color'), registration=field(settings.f,'Allow public signup (unchecked means invite-only)',state.settings.registration,'checkbox');

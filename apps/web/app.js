@@ -8,9 +8,11 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
+import { trackFeedback, mountFeedbackData } from './feedback-ui.js';
 import { nextIndex } from './player.js';
 const $ = id => document.getElementById(id);
 const audio = $('audio');
+const likes = new Map();
 let csrf = '', tracks = [], current = -1, shuffle = false, repeat = 'off', register = false, registrationAllowed = false;
 function message(text = '') { $('message').textContent = text; }
 async function api(path, options = {}) {
@@ -25,7 +27,7 @@ function signedOut() {
   $('auth-toggle').textContent = registrationAllowed ? 'New here? Create a listener account' : 'Have an invitation? Create a listener account'; $('password').autocomplete = 'current-password';
   audio.pause(); audio.removeAttribute('src'); audio.load();
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
-  tracks = []; current = -1; $('tracks').replaceChildren();
+  tracks = []; likes.clear(); $('feedback-data').replaceChildren(); current = -1; $('tracks').replaceChildren();
   $('library').hidden = $('logout').hidden = $('player').hidden = true; $('auth').hidden = false; $('identity').textContent = '';
 }
 async function signedIn(data) {
@@ -37,6 +39,8 @@ async function signedIn(data) {
   $('collection-filter').replaceChildren(new Option('All tracks',''),...collections.map(c=>new Option(c.title,c.id)));
   $('collection-filter').onchange = () => renderTracks($('collection-filter').value ? collections.find(c=>c.id===$('collection-filter').value).tracks : allTracks);
   const allTracks = (await api('/api/tracks')).tracks;
+  likes.clear();for(const track of allTracks)likes.set(track.id,Boolean(track.liked));
+  mountFeedbackData($('feedback-data'),api,()=>{likes.clear();document.querySelectorAll('.track-feedback').forEach(node=>node.dispatchEvent(new Event('feedback-cleared')));});
   renderTracks(allTracks);
 }
 function renderTracks(items) {
@@ -50,7 +54,7 @@ function renderTracks(items) {
     const number = document.createElement('span'); number.className = 'track-index'; number.textContent = String(index + 1).padStart(2, '0');
     const info = document.createElement('span'), title = document.createElement('strong'), artist = document.createElement('small'), action = document.createElement('span');
     title.textContent = track.title; artist.textContent = track.artist; action.textContent = 'Play'; action.className = 'track-action'; action.setAttribute('aria-hidden', 'true');
-    info.append(title, artist); if(track.artwork){const image=document.createElement('img');image.src=`/api/tracks/${track.id}/artwork`;image.alt='';image.width=48;image.height=48;info.prepend(image);} button.append(number, info, action); button.addEventListener('click', () => selectTrack(index)); li.append(button); return li;
+    info.append(title, artist); if(track.artwork){const image=document.createElement('img');image.src=`/api/tracks/${track.id}/artwork`;image.alt='';image.width=48;image.height=48;info.prepend(image);} button.append(number, info, action); button.addEventListener('click', () => selectTrack(index)); li.append(button,trackFeedback(track,{api,liked:likes.get(track.id)||false,onLike:value=>likes.set(track.id,value)}));li.dataset.trackId=track.id;return li;
   }));
 }
 function updatePosition() {

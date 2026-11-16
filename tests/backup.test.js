@@ -32,6 +32,8 @@ test('stopped-instance archive restores accounts, sessions, music, settings and 
     db.prepare('INSERT INTO collections VALUES(?,?,?,?)').run('restored-collection','Archive order',1,0);
     db.prepare('INSERT INTO collection_tracks VALUES(?,?,?)').run('restored-collection',tracks[1].id,0);
     db.prepare('INSERT INTO collection_tracks VALUES(?,?,?)').run('restored-collection',tracks[0].id,1);
+    db.prepare('INSERT INTO track_likes VALUES(?,?,?)').run(user.id,tracks[0].id,Date.now());
+    db.prepare('INSERT INTO track_notes VALUES(?,?,?,?,?,?)').run('restore-note',user.id,tracks[0].id,'Private restore note',Date.now(),'restore-request');
     db.close(); // No active writer while archiving the entire directory, including any journals.
     execFileSync('tar',['-C',source,'-czf',archive,'.']);mkdirSync(restored,{mode:0o700});
     execFileSync('tar',['--no-same-owner','-xzf',archive,'-C',restored]);
@@ -40,6 +42,7 @@ test('stopped-instance archive restores accounts, sessions, music, settings and 
     await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
     const base=`http://127.0.0.1:${app.server.address().port}`,headers={Cookie:`musixene_session=${token}`};
     assert.equal((await (await fetch(base+'/api/me',{headers})).json()).user.role,'administrator');
+    const feedback=await (await fetch(base+'/api/feedback/export',{headers})).json();assert.equal(feedback.notes[0].body,'Private restore note');assert.equal(feedback.likes[0].track_id,tracks[0].id);
     assert.equal((await (await fetch(base+'/api/config')).json()).name,'Restored Artist');
     const collections=await (await fetch(base+'/api/collections',{headers})).json();assert.deepEqual(collections.collections[0].tracks.map(t=>t.id),[tracks[1].id,tracks[0].id]);
     assert.equal((await (await fetch(base+'/api/tracks',{headers})).json()).tracks.length,3);
