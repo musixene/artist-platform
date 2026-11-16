@@ -1,6 +1,6 @@
 # Musixene Artist Platform
 
-An independently operated, artist-branded listening room. This first functional version provides local listener accounts, private audio streaming, a continuous player, and an installable PWA shell. **Listening credits are disabled; no deductions or reservations occur.**
+An independently operated, artist-branded listening room. This version provides administrator and listener accounts, invitations, private audio uploads and streaming, collections, branding controls, a continuous player, and an installable PWA shell. **Listening credits are disabled; no deductions or reservations occur.**
 
 Musixene is an existing music platform that believes in creative independence and artistic ownership. It is contributing independently deployable software for supplemental virtual sidestreet marketplaces and artist–fan creative feedback ecosystems. Artists operate their own instances on infrastructure of their choosing. Musixene is not a SaaS provider, nonprofit organization, hosting service, or technical support provider.
 
@@ -8,12 +8,12 @@ Musixene is an existing music platform that believes in creative independence an
 
 - Node.js 24 LTS, built-in SQLite (`node:sqlite`), and plain HTML/CSS/JavaScript. No production npm dependencies or frontend build step. Playwright is a development-only dependency.
 - Single-artist modular monolith; SQLite with WAL, FULL synchronous durability, foreign keys, and a busy timeout. Private local media stays outside the web root.
-- Local listener registration/login/logout; scrypt password hashes; opaque, hashed-at-rest sessions; HttpOnly/SameSite cookies and origin/CSRF checks. Operators can disable registration and provision/reset accounts locally.
+- Local listener registration/login/logout; scrypt password hashes; opaque, hashed-at-rest sessions; HttpOnly/SameSite cookies and origin/CSRF checks. Public signup defaults to invite-only. Administrators manage invitations, accounts, roles, private uploads, track visibility/order, collections and branding at `/admin`.
 - Authenticated HTTP byte-range audio with seeking, track selection, continuous queue playback, shuffle, repeat-all/repeat-one, and Media Session controls where supported.
 - Configurable artist name, tagline, and accent color; container-based reference deployment. No mandatory Musixene infrastructure or external fonts, trackers, identity, or storage services.
 - Service worker caches only the public shell. No offline audio or caching of private APIs/media. PWA installation requires a secure context and browser support.
 
-PostgreSQL and object storage are optional future expansion paths. This phase does not include a browser administration/upload UI, collections editor, likes, feedback, analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
+PostgreSQL and object storage are optional future expansion paths. This phase does not include likes, feedback, analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
 
 ## Run locally
 
@@ -25,7 +25,7 @@ npm run demo
 npm start
 ```
 
-Open `http://localhost:3000`, create a listener account, and select a track. `npm run demo` generates three original synthetic tone WAVs into ignored private storage; no recordings or external music are downloaded. Repeating it skips existing demo titles. Keep generated audio/data out of Git.
+Bootstrap an administrator using the [administration guide](docs/operations/administration.md), open `http://localhost:3000`, sign in, and select a track. Public signup defaults to closed. `npm run demo` generates three original synthetic tone WAVs into ignored private storage; no recordings or external music are downloaded. Repeating it skips existing demo titles. Keep generated audio/data out of Git.
 
 To customize, copy `branding.example.json` to `branding.json`, edit it, and start with:
 
@@ -33,7 +33,7 @@ To customize, copy `branding.example.json` to `branding.json`, edit it, and star
 BRANDING_FILE=./branding.json npm start
 ```
 
-See [installation and operations](docs/operations/running.md) for configuration, importing audio, account recovery, containers, and backups. The default server binds only to loopback. Physical phones require a reachable HTTPS artist origin; phone localhost refers to the phone itself.
+See [installation and operations](docs/operations/running.md) for configuration, importing audio, account recovery and containers. See the [schema-2 administration and deployment guide](docs/operations/administration.md) for tested migrations, consistent backup, deployment and isolated restore commands. The default server binds only to loopback. Physical phones require a reachable HTTPS artist origin; phone localhost refers to the phone itself.
 
 ## Tests
 

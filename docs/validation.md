@@ -28,9 +28,9 @@ A service worker cannot guarantee continuous background execution. The app uses 
 
 ## Security and remaining scope
 
-Automated checks cover representative failures, not a complete security audit. Before public production use, review proxy/TLS configuration, brute-force protection, capacity, backup/restore, accessibility, supported media codecs, and dependencies. There is no browser uploader/admin dashboard, analytics collection, feedback, or commerce. No credit deductions, reservation state, or ledger exists; the accounting boundary always authorizes authenticated catalog playback without charge.
+Automated checks cover representative failures, not a complete security audit. Before public production use, review proxy/TLS configuration, brute-force protection, capacity, backup/restore, accessibility, supported media codecs, and dependencies. The administration surface has role/CSRF checks and bounded signature-checked uploads; there is no analytics collection, feedback, or commerce. No credit deductions, reservation state, or ledger exists; the accounting boundary always authorizes authenticated catalog playback without charge.
 
-## Results executed for this implementation
+## Previous initial-slice results
 
 - `npm ci --ignore-scripts`: passed using the repository-local npm cache configuration.
 - `npm test`: **15 passed, 0 failed, 0 skipped** (API, queue/domain, operator tools, persistence, registration policy, and Secure-cookie checks).
@@ -41,3 +41,13 @@ Automated checks cover representative failures, not a complete security audit. B
 - Physical Android/iOS, actual Bluetooth hardware, long-running locked-screen playback, TLS reverse-proxy deployment, load/security/accessibility audit, and a full backup/restore drill: **not run**.
 
 A first container smoke attempt failed after restart because the test retained an ephemeral host port that Docker reassigned. The corrected check re-read the mapped port after restart and passed; this was a test-harness issue, not observed data loss.
+
+## Administration release validation
+
+- `npm ci`: passed on Node 24.22.1.
+- `npm test`: **21 passed, 0 failed, 0 skipped**. Added invite-only defaults, token hashing, username binding, expiry, revocation, concurrent single use, failed-registration rollback, role isolation, last-admin protection, disabled-account rejection, password reset/session revocation, saved branding/signup, private upload rejection/limits, retained superseded audio, publication/order/artwork, and collection filtering/atomic replacement.
+- Schema-1 fixtures migrate twice without changing original user/password/session/track fields or media bytes; existing session access, old-password login and range playback work after migration. Injected migration failure rolls back new columns and version changes; retry succeeds after the conflict is removed. Newer schema versions are rejected.
+- Automated stopped-instance tar backup/isolated restore: synthetic accounts, sessions, music bytes, saved settings and collection order survive; restored login and range playback pass. This validates the archive procedure locally; the documented Compose backup/deployment commands have not been executed against a live deployment in this change.
+- `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser`: **3 passed**, covering existing real audio/player behavior and mobile layout plus administrator login, branding/signup edits, draft audio upload/publication, ordered collection creation, invitation signup, listener collection filtering and administrator-page denial. The administrator viewport also has no horizontal overflow at 390px.
+- Exact linked attribution remains on listening and administration pages. Credits remain disabled; CPAL remains undecided.
+- No production services, `stream.musixene.live`, or backed-up MP3s were accessed or modified. Container rebuild/TLS deployment, physical mobile devices, full accessibility/security/load audits remain untested for this change.

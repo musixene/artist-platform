@@ -1,0 +1,82 @@
+# Artist administration and schema 2 upgrade
+
+This release adds a separate `/admin` interface. It leaves credits disabled and the license undecided (CPAL is still only a candidate). The exact linked footer attribution is retained on both pages. Nothing in this workflow requires access to `stream.musixene.live` or its backups. Do not run these commands in that deployment, mount its storage, or use its MP3 backups.
+
+## Bootstrap and recovery
+
+After backing up, start the upgraded app once or run the account tool below. Both apply the schema-2 migration automatically. Existing users remain listeners, retain their passwords, IDs and sessions, and keep access to existing tracks. Migration adds fields/tables in a SQLite transaction; it does not rewrite or remove media. Reopening schema 2 is idempotent; a newer schema is rejected. Existing catalog tracks remain published in their previous creation/ID order. New browser-created tracks start as unpublished drafts.
+
+Create or explicitly promote a local account using Node.js 24 (the optional final argument is the role):
+
+```sh
+read -r -s -p 'Administrator password: ' musixene_password
+printf '\n'
+printf '%s' "$musixene_password" | DATA_DIR=./data node scripts/manage-user.js artist-admin administrator
+unset musixene_password
+```
+
+The same command resets an existing account password, preserves its ID, enables it when an explicit role is supplied, and revokes its sessions. Without a role argument, existing roles and disabled state are retained; new accounts are listeners. No first visitor is automatically promoted. The last active administrator cannot be disabled or demoted through administration. Filesystem operators remain responsible for protecting the database and can recover an administrator with this command. There is no email delivery or self-service password recovery.
+
+Sign in at `/` and follow **Administration**. Administrators can:
+
+- Configure artist name, tagline, accent and public signup. Changes persist in SQLite and override the startup branding/registration defaults. Initial public signup is disabled unless `ALLOW_REGISTRATION=true` is explicitly supplied; existing accounts still sign in. An upgraded public deployment must explicitly opt in to retain public signup.
+- Create invitations expiring in 1–720 hours, optionally bound to a new username, and revoke unused invitations. Share the token privately with the invitee, who selects invited signup and pastes it into the invitation field. Tokens are displayed once, stored only as SHA-256 hashes, and never included in list responses. Account creation and single-use consumption share a transaction. A failed creation leaves the invitation unused. Invitations always create listeners; promote separately if necessary. A provided invalid token fails even when public signup is enabled.
+- List listeners, change roles, disable/re-enable accounts and reset passwords. Every saved account revokes all its sessions; disabled accounts cannot sign in or request new audio/artwork bytes. Already buffered media cannot be recalled.
+- Create track drafts, upload/replace audio, upload/remove artwork, change title/artist/position and publish/unpublish. Position sorts ascending, then creation time and ID. Hidden tracks are absent from listener catalogs/collections, and their direct media URLs reject listeners. Administrators can preview hidden media.
+- Create, edit, publish, reorder and delete collections; choose tracks and move them up/down within each collection. Deleting a collection removes its membership records, leaving the tracks and audio intact. Listeners can select published collections in their library.
+
+Uploads require a current administrator session, same-origin POST and CSRF token. Bodies stream to generated exclusive filenames with private permissions outside the web root, bounded to 512 MiB audio / 5 MiB artwork and checked against allowed MIME types and file signatures. Artwork is PNG/JPEG only (no SVG or HTML). Browser audio MIME values must be `audio/wav`, `audio/mpeg`, `audio/mp4` or `audio/ogg`; an empty/unsupported MIME value is rejected. These checks are not a malware scanner or transcoder; trusted uploads and browser codec testing are still required. The server request timeout is 30 seconds; proxy limits may be stricter. A failed upload removes its new file. A crash can leave an unreferenced file. Replacing media retains the superseded file intentionally: no automatic deletion of music or artwork occurs. Reconcile retained files against the catalog and stopped-instance backups before considering manual cleanup.
+
+## Consistent backup and deployment (Compose)
+
+Run from this artist-platform checkout only, against its own Compose project. Supply the artist application's actual HTTPS origin; **never use `stream.musixene.live` here**. These commands are instructions for the operator; no live deployment or production data was accessed during implementation.
+
+Prepare `branding.json` from `branding.example.json` if this is a new installation. Retain the existing Compose project name/working directory when upgrading so that its named `artist-data` volume is reused. Stop operator imports/account tools as well as the service during backup. Keep backups private and off-host; they contain password/session hashes and media.
+
+```sh
+export APP_ORIGIN=https://listen.your-domain.example
+# Run in the existing artist-platform deployment directory, with its normal Compose project.
+umask 077
+musixene_backup="$(pwd)/backups/$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$musixene_backup"
+git rev-parse HEAD > "$musixene_backup/code-revision.txt"
+cp compose.yaml branding.json "$musixene_backup/"
+# Also securely copy the deployment's environment/proxy configuration if stored elsewhere.
+[ ! -f .env ] || cp .env "$musixene_backup/"
+docker compose stop artist
+# Read /data through the service's existing named volume, with its WAL included.
+docker compose run --rm --no-deps -T --entrypoint tar artist -C /data -czf - . > "$musixene_backup/data.tar.gz"
+tar -tzf "$musixene_backup/data.tar.gz" >/dev/null
+# Keep the service stopped if backup fails. Do not proceed until verified.
+```
+
+Run the backup block with `set -e` in a script, or check each command's exit status interactively before proceeding. Build/deploy the reviewed branch after the backup succeeds:
+
+```sh
+git fetch origin feature/initial-artist-platform
+git switch feature/initial-artist-platform
+git pull --ff-only origin feature/initial-artist-platform
+npm ci
+npm test
+CHROMIUM_PATH=/usr/bin/chromium npm run test:browser  # or install Playwright Chromium
+# Migrations execute on startup; the existing volume remains attached.
+docker compose up --build -d artist
+docker compose exec -T artist node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>{if(x.schema!==2)process.exit(1);console.log(x)})"
+```
+
+For first administrator creation/recovery in the container, use the hidden password prompt above but pipe into `docker compose exec -T artist node scripts/manage-user.js artist-admin administrator` instead. Verify login, track counts, collection membership and full/range playback on the intended artist origin. Do not run demo generation on a real catalog merely to validate the upgrade. No application command touches a separate streaming deployment.
+
+## Isolated restore drill and rollback
+
+Restore into a **new empty directory**, never over a running database or a live media directory:
+
+```sh
+mkdir -m 700 /tmp/artist-platform-restore
+# Use the absolute path of the backup created above.
+tar --no-same-owner -xzf "$musixene_backup/data.tar.gz" -C /tmp/artist-platform-restore
+DATA_DIR=/tmp/artist-platform-restore APP_ORIGIN=http://localhost:3200 PORT=3200 npm start
+```
+
+Keep this instance on loopback with a distinct origin. Verify account login, catalog counts, artwork, collection order, full/range audio bytes and filesystem counts. For real sensitive media, use a secure operator-controlled isolated host; automated tests use only synthetic data. Do not test against the protected streaming host or its MP3 backups. Restore drills can apply migrations to the copy; they do not replace the original backup.
+
+Rollback requires the recorded previous code revision **and a complete stopped-instance pre-upgrade data restore**. Schema downgrade is not supported. Stop the service, retain the failed upgraded volume for investigation, restore the archive into a separate empty volume, point Compose at it, and deploy the recorded previous revision with its saved configuration. Never overlay a database while leaving newer WAL files, and never use `docker compose down -v` as an upgrade step. Post-backup changes must be separately reconciled.

@@ -8,7 +8,7 @@ export function loadConfig(env = process.env) {
   if (env.NODE_ENV === 'production' && origin.protocol !== 'https:') throw new Error('Production requires an HTTPS APP_ORIGIN');
   return {
     dataDir: resolve(env.DATA_DIR || 'data'), origin: origin.origin,
-    secureCookies: origin.protocol === 'https:', registration: env.ALLOW_REGISTRATION !== 'false',
+    secureCookies: origin.protocol === 'https:', registration: env.ALLOW_REGISTRATION === 'true',
     branding: {
       name: text(branding.name, 'Independent Artist', 100),
       tagline: text(branding.tagline, 'A listening room of your own.', 200),

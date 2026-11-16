@@ -10,7 +10,7 @@ npm run demo
 npm start
 ```
 
-The server listens on `127.0.0.1:3000`. Create an account in the browser. Demo generation produces original 18-second synthesized tone WAVs, not recordings. It is optional and repeatable by title. To install only runtime requirements, `npm ci --omit=dev` works; the application has no production npm dependencies.
+The server listens on `127.0.0.1:3000`. Use the [administration guide](administration.md) to bootstrap an administrator; public signup defaults to invite-only. Demo generation produces original 18-second synthesized tone WAVs, not recordings. It is optional and repeatable by title. To install only runtime requirements, `npm ci --omit=dev` works; the application has no production npm dependencies.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -19,14 +19,14 @@ The server listens on `127.0.0.1:3000`. Create an account in the browser. Demo g
 | `HOST` | `127.0.0.1` | Bind address; container uses `0.0.0.0`. |
 | `PORT` | `3000` | Application listen port. |
 | `BRANDING_FILE` | unset | Path to artist-owned JSON with `name`, `tagline`, and hex `accent`. |
-| `ALLOW_REGISTRATION` | `true` | Set `false` to close public registration; existing listeners still sign in. |
+| `ALLOW_REGISTRATION` | `false` | Startup default; set `true` to opt into public signup. Saved administrator settings override this value. Existing listeners still sign in. |
 | `NODE_ENV` | unset | `production` requires an HTTPS origin and enables the production configuration guard. |
 
 HTTPS origins always produce Secure cookies; local HTTP development uses non-Secure cookies. Sessions expire after 30 days, are checked on every API/media request, and are revoked on logout or operator password reset. No background accounting renewal is required. Expiry/revocation can prevent subsequent range requests, while already buffered audio cannot be recalled. No CORS or third-party embedding is supported.
 
 ### Artist branding
 
-Copy `branding.example.json` to ignored `branding.json`, edit name/tagline/accent, then run `BRANDING_FILE=./branding.json npm start`. Restart to apply server configuration changes. Manifest name follows the artist name; generic icons remain supplied by the project in this version. Full artwork/icon customization is a future UI/packaging improvement. The exact attribution remains linked in the footer.
+Copy `branding.example.json` to ignored `branding.json`, edit name/tagline/accent, then run `BRANDING_FILE=./branding.json npm start`. Saved branding in `/admin` overrides these defaults and applies without restarting. Manifest name follows the artist name; generic icons remain supplied by the project in this version. Track artwork is managed in `/admin`; custom PWA icons remain a future packaging improvement. The exact attribution remains linked in the footer.
 
 ### Import trusted audio
 
@@ -38,7 +38,7 @@ Use audio you have rights to distribute. Supported container formats: WAV, MP3, 
 
 ### Operator account creation/recovery
 
-There is no email recovery or browser administration role in this phase. Operators with local filesystem access can create a listener or reset a password, including when registration is disabled. In Bash, use a hidden prompt; the password is supplied on stdin, not as a process argument:
+There is no email recovery. See [administration](administration.md) for role bootstrap, invitation signup and browser controls. Operators with local filesystem access can create a listener or reset a password, including when registration is disabled. In Bash, use a hidden prompt; the password is supplied on stdin, not as a process argument:
 
 ```sh
 read -r -s -p 'New password: ' musixene_password
@@ -78,10 +78,10 @@ This local override is for loopback development only. Health endpoint: `GET /api
 
 ## Backup, upgrades, and migration
 
-Use a persistent local filesystem for SQLite and its WAL/journal; do not put the database on NFS or run multiple hosts against the same file. WAL and FULL synchronous writes are configured; durability still depends on underlying disk behavior. Transactions serialize writes with a bounded busy timeout. This first schema records version 1; future schema changes require explicit versioned migrations and recovery instructions.
+Use a persistent local filesystem for SQLite and its WAL/journal; do not put the database on NFS or run multiple hosts against the same file. WAL and FULL synchronous writes are configured; durability still depends on underlying disk behavior. Transactions serialize writes with a bounded busy timeout. Schema 2 adds administration with a transactional migration from schema 1. See [migration and deployment commands](administration.md) before upgrading.
 
 For a simple consistent backup: stop the application and operator imports/account commands, copy the complete data directory and branding/configuration, then restart. Encrypt backups, restrict access, and keep them off-host. Database backups include password hashes and live session hashes: treat them as sensitive. Do not copy only a live SQLite main file while ignoring its WAL. A supported online SQLite backup tool can be added later with tests.
 
 Restore a copy into an isolated instance on a distinct origin, use matching code/schema, verify login, catalog, full/range playback, and file counts, then securely remove test data. Do not use production music or credentials in development validation. Back up before upgrades; downgrade across incompatible future schemas may require restoring the previous backup. `docker compose down` preserves volumes; `down -v` destroys data and must not be used for routine upgrades.
 
-The current migration path is a complete stopped-instance data/configuration copy. A provider-neutral logical export/import tool and PostgreSQL/object-storage adapters are not implemented yet. No production migration has been performed. Container image tags and npm lockfile versions should be reviewed during updates; deploy immutable image digests for releases.
+Schema upgrades run automatically at database open; pre-upgrade backups require a complete stopped-instance data/configuration copy. A provider-neutral logical export/import tool and PostgreSQL/object-storage adapters are not implemented yet. No production migration has been performed. Container image tags and npm lockfile versions should be reviewed during updates; deploy immutable image digests for releases.

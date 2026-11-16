@@ -14,7 +14,7 @@ async function request(path, { method = 'GET', data, auth = true, headers = {} }
 before(async () => {
   directory = await mkdtemp(join(tmpdir(), 'musixene-test-'));
   execFileSync(process.execPath, ['scripts/generate-demo.js'], { env: { ...process.env, DATA_DIR: directory } });
-  app = createApplication(loadConfig({ DATA_DIR: directory, APP_ORIGIN: origin }));
+  app = createApplication(loadConfig({ DATA_DIR: directory, APP_ORIGIN: origin, ALLOW_REGISTRATION: 'true' }));
   await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${app.server.address().port}`;
 });

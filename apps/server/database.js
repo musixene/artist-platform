@@ -26,5 +26,33 @@ export function openDatabase(directory) {
       filename TEXT NOT NULL UNIQUE, mime TEXT NOT NULL, created_at INTEGER NOT NULL
     );
   `);
+  const version = db.prepare('SELECT max(version) AS version FROM schema_version').get().version;
+  if (version > 2) { db.close(); throw new Error('Database schema is newer than this application'); }
+  if (version < 2) {
+    try {
+      db.exec(`BEGIN IMMEDIATE;
+        ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'listener' CHECK(role IN ('listener','administrator'));
+        ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0 CHECK(disabled IN (0,1));
+        ALTER TABLE tracks ADD COLUMN visible INTEGER NOT NULL DEFAULT 1 CHECK(visible IN (0,1));
+        ALTER TABLE tracks ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE tracks ADD COLUMN artwork TEXT;
+        CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE invitations (
+          id TEXT PRIMARY KEY, token_hash TEXT UNIQUE NOT NULL, username TEXT,
+          expires_at INTEGER NOT NULL, used_at INTEGER, created_at INTEGER NOT NULL
+        );
+        CREATE TABLE collections (
+          id TEXT PRIMARY KEY, title TEXT NOT NULL, visible INTEGER NOT NULL DEFAULT 0 CHECK(visible IN (0,1)),
+          position INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE collection_tracks (
+          collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+          track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+          position INTEGER NOT NULL, PRIMARY KEY(collection_id, track_id)
+        );
+        INSERT INTO schema_version VALUES (2);
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
+  }
   return db;
 }

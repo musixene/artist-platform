@@ -31,7 +31,7 @@ Media delivery may use an authorized gateway or scoped storage grants. The diagr
 | Storage | Private local filesystem outside the public web root | Persist separately from container images; validate paths and permissions. A narrow storage interface and stable IDs allow optional object storage later. |
 | Deployment | Container-based reference deployment | Operators control TLS, persistent volumes, upgrades, and recovery. Exact runtime/framework and resource targets remain to be selected. |
 | Streaming | Authenticated HTTP byte ranges | Delivery/preloading does not establish playback time. Tight buffer control is difficult; do not bill by bytes or requests. |
-| Accounts/configuration | Local accounts and artist-controlled settings | Bootstrap, recovery, registration, and optional email details require review. |
+| Accounts/configuration | Local accounts and artist-controlled settings | Operator administrator bootstrap/recovery, invite-only signup and saved registration/branding settings are implemented; optional email remains outside this phase. |
 | Credits | Proportional per-minute metered consumption, including zero/fractional rates | Renewable allowances with incremental reconciliation accepted for investigation; detailed measurement/settlement protocol remains unresolved. No fixed session fee. |
 | Mobile | PWA using standard audio and Media Session APIs | Real-device feasibility and supported versions remain to be validated. |
 | License | CPAL 1.0 remains a candidate | No final license approval or grant; contribution terms and attribution placement remain open. |

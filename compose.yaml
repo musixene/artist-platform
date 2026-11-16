@@ -6,7 +6,7 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN to your artist HTTPS origin}
-      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
       BRANDING_FILE: /config/branding.json
     volumes:
       - artist-data:/data

@@ -22,7 +22,7 @@ export function importTrack({ source, title, artist, dataDir = process.env.DATA_
   const target = join(directory, 'media', filename);
   try {
     copyFileSync(source, target); chmodSync(target, 0o600);
-    db.prepare('INSERT INTO tracks VALUES (?, ?, ?, ?, ?, ?)').run(id, title.trim(), artist.trim(), filename, types[ext], Date.now());
+    db.prepare('INSERT INTO tracks (id, title, artist, filename, mime, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(id, title.trim(), artist.trim(), filename, types[ext], Date.now());
   } catch (error) { try { unlinkSync(target); } catch {} throw error; }
   finally { db.close(); }
   return id;

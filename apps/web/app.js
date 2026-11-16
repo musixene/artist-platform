@@ -1,7 +1,7 @@
 import { nextIndex } from './player.js';
 const $ = id => document.getElementById(id);
 const audio = $('audio');
-let csrf = '', tracks = [], current = -1, shuffle = false, repeat = 'off', register = false, registrationAllowed = true;
+let csrf = '', tracks = [], current = -1, shuffle = false, repeat = 'off', register = false, registrationAllowed = false;
 function message(text = '') { $('message').textContent = text; }
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}), ...options.headers } });
@@ -10,9 +10,9 @@ async function api(path, options = {}) {
   return data;
 }
 function signedOut() {
-  csrf = ''; register = false;
+  csrf = ''; register = false; $('admin-link').hidden = true;
   $('auth-title').textContent = 'Come on in.'; $('auth-submit').textContent = 'Sign in';
-  $('auth-toggle').textContent = 'New here? Create a listener account'; $('password').autocomplete = 'current-password';
+  $('auth-toggle').textContent = registrationAllowed ? 'New here? Create a listener account' : 'Have an invitation? Create a listener account'; $('password').autocomplete = 'current-password';
   audio.pause(); audio.removeAttribute('src'); audio.load();
   if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; }
   tracks = []; current = -1; $('tracks').replaceChildren();
@@ -22,7 +22,16 @@ async function signedIn(data) {
   csrf = data.csrf;
   $('auth').hidden = true; $('library').hidden = $('logout').hidden = false;
   $('identity').textContent = data.user.username;
-  tracks = (await api('/api/tracks')).tracks;
+  $('admin-link').hidden = data.user.role !== 'administrator';
+  const collections = (await api('/api/collections')).collections;
+  $('collection-filter').replaceChildren(new Option('All tracks',''),...collections.map(c=>new Option(c.title,c.id)));
+  $('collection-filter').onchange = () => renderTracks($('collection-filter').value ? collections.find(c=>c.id===$('collection-filter').value).tracks : allTracks);
+  const allTracks = (await api('/api/tracks')).tracks;
+  renderTracks(allTracks);
+}
+function renderTracks(items) {
+  tracks = items;
+  audio.pause(); audio.removeAttribute('src'); audio.load(); current=-1; $('player').hidden=true;
   $('track-count').textContent = `${tracks.length} tracks`;
   $('empty').hidden = tracks.length > 0;
   $('tracks').replaceChildren(...tracks.map((track, index) => {
@@ -31,7 +40,7 @@ async function signedIn(data) {
     const number = document.createElement('span'); number.className = 'track-index'; number.textContent = String(index + 1).padStart(2, '0');
     const info = document.createElement('span'), title = document.createElement('strong'), artist = document.createElement('small'), action = document.createElement('span');
     title.textContent = track.title; artist.textContent = track.artist; action.textContent = 'Play'; action.className = 'track-action'; action.setAttribute('aria-hidden', 'true');
-    info.append(title, artist); button.append(number, info, action); button.addEventListener('click', () => selectTrack(index)); li.append(button); return li;
+    info.append(title, artist); if(track.artwork){const image=document.createElement('img');image.src=`/api/tracks/${track.id}/artwork`;image.alt='';image.width=48;image.height=48;info.prepend(image);} button.append(number, info, action); button.addEventListener('click', () => selectTrack(index)); li.append(button); return li;
   }));
 }
 function updatePosition() {
@@ -54,7 +63,7 @@ function selectTrack(index) {
   audio.src = `/api/tracks/${encodeURIComponent(track.id)}/audio`;
   $('player').hidden = false; $('now-title').textContent = track.title; $('now-artist').textContent = track.artist;
   document.querySelectorAll('.track').forEach(button => button.setAttribute('aria-current', String(Number(button.dataset.index) === index)));
-  if ('mediaSession' in navigator && 'MediaMetadata' in window) navigator.mediaSession.metadata = new MediaMetadata({ title: track.title, artist: track.artist, artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }] });
+  if ('mediaSession' in navigator && 'MediaMetadata' in window) navigator.mediaSession.metadata = new MediaMetadata({ title: track.title, artist: track.artist, artwork: track.artwork ? [{src:`/api/tracks/${track.id}/artwork`}] : [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }] });
   play();
 }
 function advance(direction = 1, ended = false) {
@@ -64,16 +73,15 @@ function advance(direction = 1, ended = false) {
 $('auth-form').addEventListener('submit', async event => {
   event.preventDefault(); $('auth-submit').disabled = true; message();
   try {
-    const data = await api(register ? '/api/register' : '/api/login', { method: 'POST', body: JSON.stringify({ username: $('username').value, password: $('password').value }) });
-    $('password').value = ''; await signedIn(data);
+    const data = await api(register ? '/api/register' : '/api/login', { method: 'POST', body: JSON.stringify({ username: $('username').value, password: $('password').value, invitation: $('invitation').value.trim() || undefined }) });
+    $('password').value = ''; $('invitation').value = ''; await signedIn(data);
   } catch (error) { message(error.message); } finally { $('auth-submit').disabled = false; }
 });
 $('auth-toggle').addEventListener('click', () => {
-  if (!registrationAllowed) return;
   register = !register;
   $('auth-title').textContent = register ? 'Your space to listen.' : 'Come on in.';
   $('auth-submit').textContent = register ? 'Create listener account' : 'Sign in';
-  $('auth-toggle').textContent = register ? 'Already here? Sign in' : 'New here? Create a listener account';
+  $('auth-toggle').textContent = register ? 'Already here? Sign in' : registrationAllowed ? 'New here? Create a listener account' : 'Have an invitation? Create a listener account';
   $('password').autocomplete = register ? 'new-password' : 'current-password'; message();
 });
 $('logout').addEventListener('click', async () => {
@@ -108,7 +116,8 @@ async function boot() {
   try {
     const config = await api('/api/config');
     $('brand').textContent = config.name; $('tagline').textContent = config.tagline; document.title = `${config.name} · Listening room`;
-    registrationAllowed = config.registration; $('auth-toggle').hidden = !registrationAllowed;
+    registrationAllowed = config.registration; $('auth-toggle').hidden = false;
+    if (!registrationAllowed) $('auth-toggle').textContent = 'Have an invitation? Create a listener account';
     // The server supplies validated branding through same-origin theme.css.
     try { await signedIn(await api('/api/me')); } catch (error) { if (error.status === 401) signedOut(); else throw error; }
   } catch (error) { message(error.message); }
