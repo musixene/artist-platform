@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { openDatabase } from './database.js';
+import { feedback } from './feedback.js';
 import { administer, settings } from './admin.js';
 import { NoChargeAccounting } from '../../packages/domain/accounting.js';
 const scrypt = promisify(scryptCallback);
@@ -23,6 +24,7 @@ const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../web');
 const assets = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/admin': ['admin.html', 'text/html; charset=utf-8'],
+  '/feedback-ui.js': ['feedback-ui.js', 'text/javascript; charset=utf-8'],
   '/admin.js': ['admin.js', 'text/javascript; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/player.js': ['player.js', 'text/javascript; charset=utf-8'],
@@ -163,6 +165,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       const user = session(req);
       if (!user) throw fail(401, 'Please sign in');
       if (req.method === 'POST' && req.headers['x-csrf-token'] !== user.csrf) throw fail(403, 'CSRF token rejected');
+      if (path.startsWith('/api/feedback/') || path.startsWith('/api/admin/feedback')) return feedback({req,res,path,url,db,body,json,authenticate:()=>session(req)});
       if (path.startsWith('/api/admin/')) return administer({ req,res,path,db,config,body,json,user });
       if (path === '/api/me' && req.method === 'GET') return json(res, 200, { user: { id: user.id, username: user.username, role: user.role }, csrf: user.csrf });
       if (path === '/api/logout' && req.method === 'POST') {
@@ -171,7 +174,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
         res.setHeader('Set-Cookie', `musixene_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${config.secureCookies ? '; Secure' : ''}`);
         return json(res, 200, { ok: true });
       }
-      if (path === '/api/tracks' && req.method === 'GET') return json(res, 200, { tracks: db.prepare('SELECT id, title, artist, artwork FROM tracks WHERE visible=1 ORDER BY position, created_at, id').all() });
+      if (path === '/api/tracks' && req.method === 'GET') return json(res, 200, { tracks: db.prepare('SELECT id, title, artist, artwork, EXISTS(SELECT 1 FROM track_likes WHERE track_id=tracks.id AND user_id=?) AS liked FROM tracks WHERE visible=1 ORDER BY position, created_at, id').all(user.id) });
       if (path === '/api/collections' && req.method === 'GET') return json(res,200,{ collections: db.prepare('SELECT * FROM collections WHERE visible=1 ORDER BY position,id').all().map(c=>({...c, tracks: db.prepare('SELECT tracks.id,title,artist,artwork FROM collection_tracks JOIN tracks ON tracks.id=track_id WHERE collection_id=? AND tracks.visible=1 ORDER BY collection_tracks.position').all(c.id)})) });
       const artwork = /^\/api\/tracks\/([a-zA-Z0-9-]+)\/artwork$/.exec(path);
       if (artwork && ['GET','HEAD'].includes(req.method)) {

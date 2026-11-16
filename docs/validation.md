@@ -67,3 +67,7 @@ The prior “awaiting fresh tests” paragraph above is historical; this audit s
 ## Licensed baseline maintenance
 
 After repairing the scoped attribution assertion and desktop notice row: **21 Node tests and 4 Chromium tests pass**. New viewport checks cover opening copyright, exact attribution/source links and desktop sign-in placement. The local Docker build passes; an isolated runtime container verifies LICENSE, NOTICE and CHANGES.md are present. PR CI now runs Node/Chromium checks and runtime notice packaging. Physical-device testing remains pending; no live services were accessed.
+
+## Private feedback release
+
+Schema 3: **25 Node tests and 5 Chromium tests pass**. Added concurrent/idempotent likes and note retry protection, strict caller isolation, invalid/oversized text, role/CSRF/origin/disabled-session failures, hidden-track own-history access without media access, administrator filters/removal/audited export, pagination, persisted write limits, deletion cascades, schema-3 failure/retry and populated feedback backup/restore. Browser tests confirm reload persistence, inert note text, two-user privacy, administrator review/removal, private JSON downloads, own deletion and continued audio while liking. Credits stay disabled. Physical devices and live deployments remain untested.

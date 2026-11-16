@@ -1,10 +1,10 @@
-# Artist administration and schema 2 upgrade
+# Artist administration and schema upgrades
 
 This release adds a separate `/admin` interface. It leaves credits disabled; software licensing is now CPAL 1.0. The exact linked footer attribution is retained on both pages. Nothing in this workflow requires access to `stream.musixene.live` or its backups. Do not run these commands in that deployment, mount its storage, or use its MP3 backups.
 
 ## Bootstrap and recovery
 
-After backing up, start the upgraded app once or run the account tool below. Both apply the schema-2 migration automatically. Existing users remain listeners, retain their passwords, IDs and sessions, and keep access to existing tracks. Migration adds fields/tables in a SQLite transaction; it does not rewrite or remove media. Reopening schema 2 is idempotent; a newer schema is rejected. Existing catalog tracks remain published in their previous creation/ID order. New browser-created tracks start as unpublished drafts.
+After backing up, start the upgraded app once or run the account tool below. Both apply the schema-2 migration automatically. Existing users remain listeners, retain their passwords, IDs and sessions, and keep access to existing tracks. Migration adds fields/tables in a SQLite transaction; it does not rewrite or remove media. The subsequent schema-3 migration adds private feedback tables; see [privacy and feedback](../privacy.md). Reopening the current schema is idempotent; a newer schema is rejected. Existing catalog tracks remain published in their previous creation/ID order. New browser-created tracks start as unpublished drafts.
 
 Create or explicitly promote a local account using Node.js 24 (the optional final argument is the role):
 
@@ -63,7 +63,7 @@ npm test
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser  # or install Playwright Chromium
 # Migrations execute on startup; the existing volume remains attached.
 docker compose up --build -d artist
-docker compose exec -T artist node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>{if(x.schema!==2)process.exit(1);console.log(x)})"
+docker compose exec -T artist node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>{if(x.schema!==3)process.exit(1);console.log(x)})"
 ```
 
 For first administrator creation/recovery in the container, use the hidden password prompt above but pipe into `docker compose exec -T artist node scripts/manage-user.js artist-admin administrator` instead. Verify login, track counts, collection membership and full/range playback on the intended artist origin. Do not run demo generation on a real catalog merely to validate the upgrade. No application command touches a separate streaming deployment.
