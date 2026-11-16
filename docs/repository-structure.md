@@ -36,6 +36,6 @@ artist-platform/
     └── operations/running.md
 ```
 
-No mandatory worker, broker, PostgreSQL, or object-storage service exists. Narrow domain/storage boundaries should support later expansion without prematurely implementing multiple backends. Future migrations, integration adapters, decision records, contribution/security policies, and CI can be added as needed. No final LICENSE is added while licensing remains under review.
+No mandatory worker, broker, PostgreSQL, or object-storage service exists. Narrow domain/storage boundaries should support later expansion without prematurely implementing multiple backends. Future migrations, integration adapters, decision records, contribution/security policies, and CI can be added as needed. CPAL 1.0 LICENSE and Musixene notices are included; retain these notices and maintain attribution/source obligations.
 
 Database/journals, private media, exports, backups, logs, local branding, credentials, and private keys must remain outside version control. The default ignored `data/` contains SQLite and `media/`; containers use a named persistent volume instead. Static web assets are the only files reachable through the server's explicit public allowlist. Versioned migrations and a stopped-instance data/configuration archive support upgrades; provider-neutral logical exports remain future work.
