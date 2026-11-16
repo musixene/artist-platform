@@ -59,6 +59,6 @@ Renewable playback allowances and incremental reconciliation are accepted for fu
 
 The software does not manage copyright registration, creative provenance, recording production, or artist business operations. It does not determine whether streaming constitutes legal publication. Do not commit music, personal data, credentials, or private keys. No LP-19 production system or music is used by this implementation.
 
-The software is intended to be supplied **AS IS** under an open-source license. **The software license has not been finalized. CPAL 1.0 remains a candidate pending approval.** No license grant is made by this README; final license text, notices, contribution terms, and downstream attribution obligations remain under review.
+**Copyright © 2026 Musixene.** Musixene is a trade name of Clara Vista Entertainment LLC. The platform source code is licensed under the **[Common Public Attribution License Version 1.0 (CPAL-1.0)](LICENSE)**, with completed Exhibits A and B. It is provided **AS IS**, without warranties or hosting/technical support from Musixene. The license requires specified attribution and carries source-availability obligations for covered network deployments. See [licensing guidance](docs/licensing-proposal.md). The platform license does not automatically license an artist's independently owned recordings, artwork, listener records, or other separate material.
 
 [Powered by an Open Source Concept from Musixene](https://musixene.com)
