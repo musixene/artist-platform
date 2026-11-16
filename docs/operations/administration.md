@@ -1,6 +1,6 @@
 # Artist administration and schema 2 upgrade
 
-This release adds a separate `/admin` interface. It leaves credits disabled and the license undecided (CPAL is still only a candidate). The exact linked footer attribution is retained on both pages. Nothing in this workflow requires access to `stream.musixene.live` or its backups. Do not run these commands in that deployment, mount its storage, or use its MP3 backups.
+This release adds a separate `/admin` interface. It leaves credits disabled; software licensing is now CPAL 1.0. The exact linked footer attribution is retained on both pages. Nothing in this workflow requires access to `stream.musixene.live` or its backups. Do not run these commands in that deployment, mount its storage, or use its MP3 backups.
 
 ## Bootstrap and recovery
 
