@@ -1,14 +1,95 @@
 <!-- The contents of this file are subject to the Common Public Attribution License Version 1.0 (CPAL-1.0); see LICENSE or https://opensource.org/license/CPAL-1.0. CPAL is based on MPL 1.1, with Sections 14 and 15 for attribution and network use. Original Code: Musixene Artist Platform. Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC). Copyright (c) 2026 Musixene. All Rights Reserved. The software is provided AS IS, WITHOUT WARRANTY OF ANY KIND. -->
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Artist administration</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/theme.css"><script type="module" src="/admin.js"></script></head>
-<body class="admin-page"><header><a href="/">← Listening room</a><strong>Artist administration</strong></header><main>
-<p class="small attribution" role="note">© 2026 Musixene · <a href="https://musixene.com" rel="noopener noreferrer">Powered by an Open Source Concept from Musixene</a> · <a href="https://github.com/musixene/artist-platform">Source (CPAL 1.0)</a></p>
-<p id="admin-status" role="status" aria-live="polite">Checking administrator access…</p>
-<div id="administration" hidden>
-<nav aria-label="Administration"><a href="#feedback">Feedback</a> · <a href="#settings">Branding & signup</a> · <a href="#invitations">Invitations</a> · <a href="#listeners">Listeners</a> · <a href="#catalog">Tracks</a> · <a href="#collections">Collections</a></nav>
-<section class="panel" id="settings"><h1>Branding & signup</h1><div id="settings-form"></div><p>Listening credits remain disabled.</p></section>
-<section class="panel" id="invitations"><h2>Invitations</h2><p>Each invitation creates one listener account. Share its token privately; it is shown only once.</p><div id="invite-form"></div><output id="invite-token"></output><div id="invite-list"></div></section>
-<section class="panel" id="listeners"><h2>Listeners & administrators</h2><p>Saving an account revokes its sessions. The last active administrator must remain enabled.</p><div id="listener-list"></div></section>
-<section class="panel" id="catalog"><h2>Tracks</h2><p>Create a draft, upload audio, then publish. Position controls library order (lowest first). Audio: WAV, MP3, M4A or Ogg, up to 512 MiB. Artwork: PNG or JPEG, up to 5 MiB. Upload only trusted files you have rights to distribute.</p><div id="track-form"></div><div id="track-list"></div></section>
-<section class="panel" id="feedback"></section><section class="panel" id="collections"><h2>Collections</h2><p>Only published collections and published tracks appear to listeners.</p><div id="collection-new"></div><div id="collection-list"></div></section>
-</div></main><footer><a href="https://musixene.com" rel="noopener noreferrer">Powered by an Open Source Concept from Musixene</a></footer></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Artist administration</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/theme.css" />
+    <script type="module" src="/admin.js"></script>
+  </head>
+  <body class="admin-page">
+    <header>
+      <a href="/">← Listening room</a><strong>Artist administration</strong>
+    </header>
+    <main>
+      <p id="admin-status" role="status" aria-live="polite">
+        Checking administrator access…
+      </p>
+      <fieldset id="administration" hidden>
+        <nav aria-label="Administration">
+          <a href="#feedback">Feedback</a> ·
+          <a href="#settings">Artist Branding</a> ·
+          <a href="#invitations">Invitations</a> ·
+          <a href="#listeners">Listeners</a> · <a href="#catalog">Tracks</a> ·
+          <a href="#collections">Catalogs</a>
+        </nav>
+        <section class="panel" id="settings">
+          <h1>Artist Branding</h1>
+          <div id="settings-form"></div>
+          <div id="branding-assets"></div>
+          <p>Listening credits remain disabled.</p>
+        </section>
+        <section class="panel" id="invitations">
+          <h2>Invitations</h2>
+          <p>
+            Each invitation creates one listener account. Share its token
+            privately; it is shown only once.
+          </p>
+          <div id="invite-form"></div>
+          <output id="invite-token"></output>
+          <div id="invite-list"></div>
+        </section>
+        <section class="panel" id="listeners">
+          <h2>Listeners & administrators</h2>
+          <p>
+            Saving an account revokes its sessions. The last active
+            administrator must remain enabled.
+          </p>
+          <div id="listener-list"></div>
+        </section>
+        <section class="panel" id="catalog">
+          <h2>Tracks</h2>
+          <p>
+            Create a hidden draft, upload audio, then make it available. Release
+            status is a separate artist-supplied designation. Position controls
+            library and dynamic catalog order (lowest first). Audio: WAV, MP3,
+            M4A or Ogg, up to 512 MiB. Artwork: PNG or JPEG, up to 5 MiB. Upload
+            only trusted files you have rights to distribute.
+          </p>
+          <div id="track-form"></div>
+          <div id="track-list"></div>
+        </section>
+        <section class="panel" id="feedback"></section>
+        <section class="panel" id="collections">
+          <h2>Catalogs</h2>
+          <p>
+            Curated catalogs preserve your chosen order; dynamic catalogs follow
+            metadata filters. Catalog availability never exposes a hidden track.
+          </p>
+          <div id="collection-new"></div>
+          <div id="collection-list"></div>
+        </section>
+      </fieldset>
+      <datalist id="content-types">
+        <option value="music"></option>
+        <option value="interview"></option>
+        <option value="spoken_word"></option>
+        <option value="other"></option>
+      </datalist>
+    </main>
+    <footer class="app-footer">
+      <p class="attribution" role="note">
+        <span>© 2026 Musixene</span
+        ><a href="https://musixene.com" rel="noopener noreferrer"
+          >Powered by an Open Source Concept from Musixene</a
+        ><span
+          ><a href="https://github.com/musixene/artist-platform"
+            >Source (CPAL 1.0)</a
+          ></span
+        >
+      </p>
+    </footer>
+  </body>
+</html>

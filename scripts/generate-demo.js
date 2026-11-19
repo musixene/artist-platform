@@ -33,6 +33,6 @@ try {
       output.writeInt16LE(Math.round(signal*32767),44+i*2);
     }
     const source=join(temporary, `${frequency}.wav`); writeFileSync(source,output);
-    importTrack({source,title,artist:'Musixene · synthetic demo',dataDir}); console.log(`Generated: ${title}`);
+    importTrack({source,title,artist:'Synthetic Demo Artist',dataDir}); console.log(`Generated: ${title}`);
   }
 } finally { rmSync(temporary,{recursive:true,force:true}); }

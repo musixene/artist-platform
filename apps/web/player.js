@@ -9,15 +9,45 @@
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
 // Queue policy is independent of DOM/audio and accounting.
-export function nextIndex({ length, current, direction = 1, shuffle = false, repeat = 'off', ended = false, random = Math.random }) {
+export function nextIndex({
+  length,
+  current,
+  direction = 1,
+  shuffle = false,
+  repeat = "off",
+  ended = false,
+  random = Math.random,
+}) {
   if (!length) return -1;
   if (current < 0) return 0;
-  if (ended && repeat === 'one') return current;
+  if (ended && repeat === "one") return current;
   if (shuffle && length > 1) {
     const other = Math.min(length - 2, Math.floor(random() * (length - 1)));
     return other >= current ? other + 1 : other;
   }
   const next = current + direction;
   if (next >= 0 && next < length) return next;
-  return repeat === 'all' ? (next + length) % length : -1;
+  return repeat === "all" ? (next + length) % length : -1;
+}
+
+// Browsing never changes this snapshot. An explicit selection establishes a new queue.
+export class PlaybackQueue {
+  constructor() {
+    this.ids = [];
+    this.title = "All Catalogs";
+    this.currentId = null;
+  }
+  select(ids, id, title) {
+    this.ids = [...new Set(ids)];
+    this.currentId = id;
+    this.title = title;
+  }
+  next(options = {}) {
+    const index = nextIndex({
+      length: this.ids.length,
+      current: this.ids.indexOf(this.currentId),
+      ...options,
+    });
+    return index < 0 ? null : this.ids[index];
+  }
 }

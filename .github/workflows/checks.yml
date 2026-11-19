@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   regression:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,6 +19,13 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-      - run: docker build -t artist-platform-ci .
-      - name: Verify runtime distribution notices
-        run: docker run --rm --entrypoint sh artist-platform-ci -c 'test -s /app/LICENSE && test -s /app/NOTICE && test -s /app/CHANGES.md'
+      - name: Isolated container persistence and distribution notices
+        run: npm run test:container
+      - name: Preserve synthetic browser failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

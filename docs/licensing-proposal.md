@@ -19,7 +19,7 @@
 - Graphic: no additional graphic required.
 - Display of attribution in Larger Works: **required**.
 
-CPAL Section 14 specifies prominent GUI attribution at launch/session start; Section 15 addresses external network deployment and source availability. A footer alone may not establish first-screen visibility on small devices. Include the required wording and copyright near the beginning of the sign-in and administration experience and verify it on real devices.
+CPAL Section 14 specifies prominent GUI attribution at launch/session start; Section 15 addresses external network deployment and source availability. A footer alone may not establish first-screen visibility on small devices. The player redesign keeps the required wording, copyright and source link in a persistent, readable footer visible at launch/session start on sign-in, restored listening sessions, Store and administration. The independently scrolling catalog must not push it below the fold. Verify this treatment on real devices; this implementation evidence is not legal certification.
 
 Covered software is licensed; an artist's independently owned recordings, artwork, listener data and other private content are not automatically licensed merely because the platform handles them. Artists operate their own independent deployments. Musixene provides no mandatory hosting, technical support, registration service, payments or guarantees. The software is supplied AS IS under the license.
 

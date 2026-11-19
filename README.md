@@ -1,6 +1,6 @@
 # Musixene Artist Platform
 
-An independently operated, artist-branded listening room. This version provides administrator and listener accounts, invitations, private audio uploads and streaming, collections, branding controls, a continuous player, and an installable PWA shell. **Listening credits are disabled; no deductions or reservations occur.**
+An independently operated, artist-branded listening room. Version 0.2 introduces a player-first listening room: one persistent full player, compact catalog browsing, curated and dynamic catalogs, private active-track Likes/Note to Artist, and administrator-controlled artist/PWA identity. Existing accounts, invitations, private uploads and streaming remain supported. **Listening credits are disabled; no deductions or reservations occur.**
 
 Musixene is an existing music platform that believes in creative independence and artistic ownership. It is contributing independently deployable software for supplemental virtual sidestreet marketplaces and artist–fan creative feedback ecosystems. Artists operate their own instances on infrastructure of their choosing. Musixene is not a SaaS provider, nonprofit organization, hosting service, or technical support provider.
 
@@ -10,10 +10,11 @@ Musixene is an existing music platform that believes in creative independence an
 - Single-artist modular monolith; SQLite with WAL, FULL synchronous durability, foreign keys, and a busy timeout. Private local media stays outside the web root.
 - Local listener registration/login/logout; scrypt password hashes; opaque, hashed-at-rest sessions; HttpOnly/SameSite cookies and origin/CSRF checks. Public signup defaults to invite-only. Administrators manage invitations, accounts, roles, private uploads, track visibility/order, collections and branding at `/admin`.
 - Authenticated HTTP byte-range audio with seeking, track selection, continuous queue playback, shuffle, repeat-all/repeat-one, and Media Session controls where supported.
-- Configurable artist name, tagline, and accent color; container-based reference deployment. No mandatory Musixene infrastructure or external fonts, trackers, identity, or storage services.
+- Independent release status and listener availability, Explicit/Non-Explicit/Unreviewed classification, extensible content types, genres/tags, ordered curated catalogs and bounded metadata-driven dynamic catalogs.
+- Configurable artist name, optional wordmark/tagline, header logo, favicon, installed icons, PWA names and accent; container-based reference deployment. No mandatory Musixene infrastructure or external fonts, trackers, identity, or storage services.
 - Service worker caches only the public shell. No offline audio or caching of private APIs/media. PWA installation requires a secure context and browser support.
 
-PostgreSQL and object storage are optional future expansion paths. Listeners can like tracks and send private Note to Artist feedback; administrators can filter and review it. See [privacy and feedback controls](docs/privacy.md) for deletion, export and retention behavior. This phase does not include analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
+PostgreSQL and object storage are optional future expansion paths. Listeners can like tracks and send private Note to Artist feedback; administrators can filter and review it. Browsing catalogs or the Store placeholder keeps audio and the established queue intact; selecting a row establishes that catalog’s queue. Store and Credits Available are clearly marked Coming Soon, without products, balances or transactions. See [redesign behavior and migration details](docs/player-redesign.md) and [privacy and feedback controls](docs/privacy.md) for deletion, export and retention behavior. This phase does not include analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
 
 ## Run locally
 
@@ -41,6 +42,7 @@ See [installation and operations](docs/operations/running.md) for configuration,
 npm test
 npx playwright install chromium
 npm run test:browser
+npm run test:container  # Docker; fresh synthetic volume, cleaned after the check
 ```
 
 If Chromium is already installed, use `CHROMIUM_PATH=/path/to/chromium npm run test:browser`. Tests create isolated temporary databases and synthetic audio, never use the running instance's accounts or media. See [validation and mobile checklist](docs/validation.md) for actual results and remaining device tests.

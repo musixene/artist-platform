@@ -4,7 +4,7 @@ Original Code: Musixene Artist Platform. Original Developer and Initial Develope
 */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nextIndex } from '../apps/web/player.js';
+import { nextIndex, PlaybackQueue } from '../apps/web/player.js';
 import { NoChargeAccounting } from '../packages/domain/accounting.js';
 test('continuous selection advances and stops at end unless repeat-all is selected', () => {
   assert.equal(nextIndex({ length: 3, current: 0, ended: true }), 1);
@@ -28,4 +28,13 @@ test('accounting boundary authorizes without creating charges or browser leases'
   const accounting = new NoChargeAccounting();
   assert.deepEqual(await accounting.authorizePlayback({ listenerId: 'listener', trackId: 'track' }), { allowed: true, mode: 'disabled', chargesEnabled: false });
   await assert.rejects(accounting.authorizePlayback({}), /identity/);
+});
+
+test('catalog browsing leaves the established queue intact; explicit selection snapshots order and repeat/shuffle stay coherent',()=>{
+  const q=new PlaybackQueue(),catalog=['a','b','c'];q.select(catalog,'b','First catalog');catalog.push('later');
+  const browsed=['c','d'];assert.equal(q.currentId,'b');assert.equal(q.next(),'c');assert.deepEqual(q.ids,['a','b','c']);
+  assert.equal(q.next({direction:-1}),'a');assert.equal(q.next({repeat:'one',ended:true}),'b');
+  q.currentId='c';assert.equal(q.next(),null);assert.equal(q.next({repeat:'all'}),'a');
+  q.select(browsed,'c','Second catalog');assert.equal(q.next(),'d');assert.equal(q.title,'Second catalog');
+  q.select(['a','a','b'],'a','Deduplicated');assert.deepEqual(q.ids,['a','b']);assert.equal(q.next({shuffle:true,random:()=>0}),'b');
 });

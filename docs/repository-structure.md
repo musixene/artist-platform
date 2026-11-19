@@ -13,7 +13,7 @@ artist-platform/
 │   │   ├── index.js                   # Startup/configuration and shutdown
 │   │   ├── app.js                     # HTTP/auth/catalog/range delivery
 │   │   ├── config.js                  # Artist-owned configuration
-│   │   └── database.js                # SQLite schema v2, transactional migrations and durability settings
+│   │   └── database.js                # SQLite schema v4, transactional migrations and durability settings
 │   └── web/                          # PWA shell, persistent player, queue policy
 ├── packages/domain/accounting.js      # Defined boundary; no charges/reservations
 ├── scripts/
@@ -39,3 +39,5 @@ artist-platform/
 No mandatory worker, broker, PostgreSQL, or object-storage service exists. Narrow domain/storage boundaries should support later expansion without prematurely implementing multiple backends. Future migrations, integration adapters, decision records, contribution/security policies, and CI can be added as needed. CPAL 1.0 LICENSE and Musixene notices are included; retain these notices and maintain attribution/source obligations.
 
 Database/journals, private media, exports, backups, logs, local branding, credentials, and private keys must remain outside version control. The default ignored `data/` contains SQLite and `media/`; containers use a named persistent volume instead. Static web assets are the only files reachable through the server's explicit public allowlist. Versioned migrations and a stopped-instance data/configuration archive support upgrades; provider-neutral logical exports remain future work.
+
+The player redesign adds `apps/server/catalog.js` for bounded catalog/metadata behavior and `apps/server/branding.js` for validated public identity assets. `DATA_DIR/branding/` is operator data alongside private media, included in complete backups and excluded from Git. Browser queue policy remains in player.js; Like/Note APIs and privacy controls are reused.
