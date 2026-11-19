@@ -394,8 +394,23 @@ test("administrator branding and classification/catalog forms persist without ch
   await card.getByLabel("Content type", { exact: true }).fill("interview");
   await card.getByLabel("Genres (comma separated)").fill("Spoken");
   await card.getByLabel("Tags (comma separated)").fill("Synthetic");
+  const trackId = await card.getAttribute("data-track-id");
+  let releaseSave;
+  const saveGate = new Promise((resolve) => {
+    releaseSave = resolve;
+  });
+  const trackRoute = `**/api/admin/tracks/${trackId}`;
+  await page.route(trackRoute, async (route) => {
+    const response = await route.fetch();
+    await saveGate;
+    await route.fulfill({ response });
+  });
   await card.getByRole("button", { name: "Save", exact: true }).click();
   const create = page.locator("#collection-new");
+  await expect(create.getByLabel("Catalog title")).toBeDisabled();
+  releaseSave();
+  await expect(page.locator("#admin-status")).toHaveText("Saved.");
+  await page.unroute(trackRoute);
   await create.getByLabel("Catalog title").fill("Synthetic Interviews");
   await create.getByLabel("Catalog available to listeners").check();
   await create.getByLabel("Catalog type").selectOption("dynamic");
@@ -460,4 +475,85 @@ test("administrator branding and classification/catalog forms persist without ch
       tags: [],
     },
   });
+});
+
+test("a delayed Like response cannot contaminate another listener after an in-app account switch", async ({
+  page,
+  browser,
+}) => {
+  const bob = await browser.newContext();
+  const created = await bob.request.post(origin + "/api/register", {
+    headers: { Origin: origin },
+    data: {
+      username: "late-like-bob",
+      password: "synthetic late response passphrase",
+    },
+  });
+  expect(created.status()).toBe(201);
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "New here? Create a listener account" })
+    .click();
+  await page.getByLabel("Username", { exact: true }).fill("late-like-alice");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("synthetic late response passphrase");
+  await page
+    .getByRole("button", { name: "Create listener account", exact: true })
+    .click();
+  await expect(page.locator(".track")).toHaveCount(3);
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let forwarded;
+  const reached = new Promise((resolve) => {
+    forwarded = resolve;
+  });
+  await page.route("**/api/feedback/tracks/*/like", async (route) => {
+    const response = await route.fetch();
+    forwarded();
+    await gate;
+    await route.fulfill({ response });
+  });
+  try {
+    await page.evaluate(() => {
+      window.pendingLikeButton = document.querySelector(
+        "#active-feedback button[aria-pressed]",
+      );
+    });
+    await page
+      .getByRole("button", { name: "Like Morning signal", exact: true })
+      .click();
+    await reached;
+    await page.getByLabel("Account and privacy").click();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page.getByLabel("Username", { exact: true }).fill("late-like-bob");
+    await page
+      .getByLabel("Password", { exact: true })
+      .fill("synthetic late response passphrase");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.locator(".track")).toHaveCount(3);
+    release();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          window.pendingLikeButton.getAttribute("aria-pressed"),
+        ),
+      )
+      .toBe("true");
+    await page.locator(".track").nth(1).click();
+    await page.locator(".track").first().click();
+    await expect(
+      page.getByRole("button", { name: "Like Morning signal", exact: true }),
+    ).toHaveAttribute("aria-pressed", "false");
+    const id = (await page.locator("audio").getAttribute("src")).split("/")[3];
+    const own = await (
+      await page.request.get(`/api/feedback/tracks/${id}`)
+    ).json();
+    expect(own.liked).toBe(false);
+  } finally {
+    release();
+    await bob.close();
+  }
 });

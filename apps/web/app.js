@@ -23,6 +23,7 @@ let csrf = "",
   repeat = "off",
   register = false,
   registrationAllowed = false;
+let sessionGeneration = 0;
 let config = { name: "Independent Artist", assets: {} };
 function message(text = "") {
   $("message").textContent = text;
@@ -84,6 +85,7 @@ function authMode() {
   $("invitation").hidden = $("invitation-label").hidden = !register;
 }
 function signedOut() {
+  sessionGeneration++;
   for (const root of feedbackRoots.values())
     root.querySelector("dialog")?.close();
   csrf = "";
@@ -115,8 +117,10 @@ function signedOut() {
   $("identity").textContent = "";
 }
 async function signedIn(data) {
+  const generation = ++sessionGeneration;
   csrf = data.csrf;
   const library = await api("/api/catalog");
+  if (generation !== sessionGeneration) return;
   tracks = new Map(library.tracks.map((t) => [t.id, t]));
   catalogs = library.catalogs;
   likes.clear();
@@ -291,16 +295,20 @@ function activate(id, { autoplay = true, restart = false } = {}) {
   $("artwork").alt = track.artwork
     ? `Artwork for ${track.title}`
     : "No track artwork";
-  if (!feedbackRoots.has(id))
+  if (!feedbackRoots.has(id)) {
+    const generation = sessionGeneration;
     feedbackRoots.set(
       id,
       trackFeedback(track, {
         api,
         liked: likes.get(id) || false,
-        onLike: (value) => likes.set(id, value),
+        onLike: (value) => {
+          if (generation === sessionGeneration) likes.set(id, value);
+        },
         player: true,
       }),
     );
+  }
   const root = feedbackRoots.get(id);
   root.dispatchEvent(
     new CustomEvent("feedback-state", { detail: likes.get(id) || false }),

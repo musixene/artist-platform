@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   regression:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,3 +21,11 @@ jobs:
       - run: npm run test:browser
       - name: Isolated container persistence and distribution notices
         run: npm run test:container
+      - name: Preserve synthetic browser failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

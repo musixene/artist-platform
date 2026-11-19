@@ -11,7 +11,8 @@
 import { mountFeedbackAdmin } from "./feedback-ui.js";
 const $ = (id) => document.getElementById(id);
 let csrf = "",
-  state;
+  state,
+  saving = false;
 function el(tag, text) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -86,6 +87,11 @@ function button(parent, label, action) {
   return b;
 }
 async function run(action, b) {
+  if (saving) return;
+  saving = true;
+  $("administration").disabled = true;
+  $("administration").inert = true;
+  $("administration").setAttribute("aria-busy", "true");
   if (b) b.disabled = true;
   status("Saving…");
   try {
@@ -94,6 +100,10 @@ async function run(action, b) {
   } catch (error) {
     status(error.message);
   } finally {
+    saving = false;
+    $("administration").disabled = false;
+    $("administration").inert = false;
+    $("administration").setAttribute("aria-busy", "false");
     if (b) b.disabled = false;
   }
 }
