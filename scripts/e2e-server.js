@@ -18,6 +18,13 @@ const directory = mkdtempSync(join(tmpdir(), 'musixene-browser-'));
 execFileSync(process.execPath, ['scripts/generate-demo.js'], { env: { ...process.env, DATA_DIR: directory } });
 execFileSync(process.execPath, ['scripts/manage-user.js','browser-admin','administrator'], { env: { ...process.env, DATA_DIR: directory }, input: 'synthetic admin passphrase' });
 const { server, db } = createApplication(loadConfig({ DATA_DIR: directory, APP_ORIGIN: 'http://localhost:3100', ALLOW_REGISTRATION: 'true' }));
+// Synthetic UI classifications only; these tones are not actual artist recordings.
+const demo=db.prepare('SELECT id FROM tracks ORDER BY created_at,id').all();
+for(const [i,track] of demo.entries())db.prepare('UPDATE tracks SET release_status=?,explicit_status=?,content_type=?,genres=?,tags=? WHERE id=?').run(i===1?'unpublished':'published',i===0?'explicit':i===1?'non_explicit':'unreviewed',i===2?'interview':'music',JSON.stringify(i===0?['Soul','Funk']:i===1?['Jazz']:[]),JSON.stringify(i===0?['Driving']:[]),track.id);
+db.prepare('INSERT INTO collections(id,title,visible,position) VALUES(?,?,?,?)').run('synthetic-pair','Synthetic Pair',1,0);
+db.prepare('INSERT INTO collection_tracks VALUES(?,?,?)').run('synthetic-pair',demo[1].id,0);
+db.prepare('INSERT INTO collection_tracks VALUES(?,?,?)').run('synthetic-pair',demo[0].id,1);
+db.prepare('INSERT INTO collections(id,title,visible,position,kind,rules) VALUES(?,?,?,?,?,?)').run('synthetic-nonexplicit','Synthetic Non-Explicit',1,1,'dynamic',JSON.stringify({explicit_status:'non_explicit'}));
 server.listen(3100, '127.0.0.1');
 function close() { server.close(() => { db.close(); rmSync(directory, { recursive: true, force: true }); process.exit(0); }); }
 process.on('SIGTERM', close); process.on('SIGINT', close);

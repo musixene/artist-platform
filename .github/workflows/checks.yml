@@ -19,6 +19,5 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-      - run: docker build -t artist-platform-ci .
-      - name: Verify runtime distribution notices
-        run: docker run --rm --entrypoint sh artist-platform-ci -c 'test -s /app/LICENSE && test -s /app/NOTICE && test -s /app/CHANGES.md'
+      - name: Isolated container persistence and distribution notices
+        run: npm run test:container

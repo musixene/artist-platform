@@ -8,6 +8,7 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
+import packageInfo from '../../package.json' with { type: 'json' };
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat, readFile } from 'node:fs/promises';
@@ -107,7 +108,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
     const url = new URL(req.url, config.origin), path = url.pathname;
     if (!['GET', 'HEAD', 'POST'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD, POST'); throw fail(405, 'Method not allowed'); }
     if (req.method === 'POST' && req.headers.origin !== config.origin) throw fail(403, 'Origin rejected');
-    if (path === '/api/health' && req.method === 'GET') return json(res, 200, { status: 'ok', schema: db.prepare('SELECT max(version) AS version FROM schema_version').get().version });
+    if (path === '/api/health' && req.method === 'GET') return json(res, 200, { status: 'ok', version:packageInfo.version, schema: db.prepare('SELECT max(version) AS version FROM schema_version').get().version });
     if (path === '/api/config' && req.method === 'GET') return json(res, 200, { ...currentSettings, assets:Object.fromEntries(['logo','favicon','icon192','icon512'].map(kind=>[kind,brandingURL(kind,currentSettings[kind])])), accounting: { mode: 'disabled', chargesEnabled: false } });
     const branding=/^\/branding\/(logo|favicon|icon192|icon512)$/.exec(path);
     if(branding && ['GET','HEAD'].includes(req.method)){
@@ -123,7 +124,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
     if (path === '/theme.css'  && ['GET', 'HEAD'].includes(req.method)) {
       const rgb=currentSettings.accent.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);
       const luminance=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
-      const css = `:root{--accent:${currentSettings.accent};--on-accent:${luminance>.179?'#101512':'#ffffff'}}`;
+      const css = `:root{--accent:${currentSettings.accent};--on-accent:${luminance>.179?'#000000':'#ffffff'};--accent-ink:${luminance>.179?currentSettings.accent:'#d3ddec'}}`;
       res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
       return res.end(req.method === 'HEAD' ? undefined : css);
     }

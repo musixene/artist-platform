@@ -1,6 +1,6 @@
 {
   "name": "musixene-artist-platform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,7 +11,8 @@
     "test": "node --test tests/*.test.js",
     "demo": "node scripts/generate-demo.js",
     "import": "node scripts/import-track.js",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:container": "docker build -t musixene-artist-platform:test . && node tests/container-smoke.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1"
