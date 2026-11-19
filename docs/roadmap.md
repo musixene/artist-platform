@@ -18,6 +18,10 @@ Implemented on the feedback feature branch: idempotent track likes, caller-only 
 
 The approved proposal uses multiple immutable 2,000-character notes, author deletion, retained own access after unpublishing, administrator removal, persisted abuse limits and paginated private exports; see [privacy controls](privacy.md). Schema 3 is additive. Require safe additive migrations, existing-account/media preservation, two-user privacy tests, server authorization, CSRF/origin failures, durable state, inert text rendering and browser interaction tests.
 
+## Next milestone — Player-first UI and catalogs (before analytics)
+
+Version 0.2/schema 4 is implemented on a review branch: full player, compact catalogs, active feedback, persistent queue, Player/Store placeholders, independent release/visibility metadata, explicit/content classifications, genre/tag lists, curated/dynamic catalogs and administrator-controlled artist/PWA assets. See [redesign details](player-redesign.md). Automated migration/privacy/catalog/queue and responsive browser validation accompanies the PR. No production access, automatic merge or deployment. Review source and migration defaults before release; physical-device validation remains open.
+
 ## 3. Playback analytics
 
 After feedback, define an explicit event/privacy/retention policy and implement estimated playback reporting and an administrator dashboard. Distinguish selections, starts, observed progress, reported completions and explicit skips. Missing events and browser suspension remain uncertainty; downloaded bytes and wall-clock time are not verified listening.

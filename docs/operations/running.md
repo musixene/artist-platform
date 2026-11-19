@@ -26,7 +26,7 @@ HTTPS origins always produce Secure cookies; local HTTP development uses non-Sec
 
 ### Artist branding
 
-Copy `branding.example.json` to ignored `branding.json`, edit name/tagline/accent, then run `BRANDING_FILE=./branding.json npm start`. Saved branding in `/admin` overrides these defaults and applies without restarting. Manifest name follows the artist name; generic icons remain supplied by the project in this version. Track artwork is managed in `/admin`; custom PWA icons remain a future packaging improvement. The exact attribution remains linked in the footer.
+Copy `branding.example.json` to ignored `branding.json`, edit name/tagline/accent, then run `BRANDING_FILE=./branding.json npm start`. Saved branding in `/admin` overrides these defaults and applies without restarting. Artist Branding in `/admin` controls optional wordmark/tagline, logo, favicon, PWA names, 192/512 icons and accent. PWA names fall back to artist name; generic assets are neutral music symbols. Track artwork remains private and separate. See [branding image requirements and caching](../player-redesign.md). Configured assets are in `DATA_DIR/branding/` and must be included in backups. Reload browser tabs after branding changes; installed identity updates depend on the browser/OS. The exact attribution remains linked in the footer.
 
 ### Import trusted audio
 
@@ -78,7 +78,7 @@ This local override is for loopback development only. Health endpoint: `GET /api
 
 ## Backup, upgrades, and migration
 
-Use a persistent local filesystem for SQLite and its WAL/journal; do not put the database on NFS or run multiple hosts against the same file. WAL and FULL synchronous writes are configured; durability still depends on underlying disk behavior. Transactions serialize writes with a bounded busy timeout. Schema 2 adds administration with a transactional migration from schema 1. See [migration and deployment commands](administration.md) before upgrading.
+Use a persistent local filesystem for SQLite and its WAL/journal; do not put the database on NFS or run multiple hosts against the same file. WAL and FULL synchronous writes are configured; durability still depends on underlying disk behavior. Transactions serialize writes with a bounded busy timeout. Versioned transactional migrations add schema-2 administration, schema-3 private feedback and schema-4 track metadata/catalog rules; existing data/media are preserved. See [migration and deployment commands](administration.md) before upgrading.
 
 For a simple consistent backup: stop the application and operator imports/account commands, copy the complete data directory and branding/configuration, then restart. Encrypt backups, restrict access, and keep them off-host. Database backups include password hashes and live session hashes: treat them as sensitive. Do not copy only a live SQLite main file while ignoring its WAL. A supported online SQLite backup tool can be added later with tests.
 

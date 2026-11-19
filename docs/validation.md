@@ -71,3 +71,11 @@ After repairing the scoped attribution assertion and desktop notice row: **21 No
 ## Private feedback release
 
 Schema 3: **25 Node tests and 5 Chromium tests pass**. Added concurrent/idempotent likes and note retry protection, strict caller isolation, invalid/oversized text, role/CSRF/origin/disabled-session failures, hidden-track own-history access without media access, administrator filters/removal/audited export, pagination, persisted write limits, deletion cascades, schema-3 failure/retry and populated feedback backup/restore. Browser tests confirm reload persistence, inert note text, two-user privacy, administrator review/removal, private JSON downloads, own deletion and continued audio while liking. Credits stay disabled. Physical devices and live deployments remain untested.
+
+## Player-first release (0.2 / schema 4)
+
+**30 Node tests and 7 Chromium tests pass.** The full existing regression suite is retained and adapted to the active-player feedback layout and renamed availability controls. New tests cover schema-3 preservation/failure/repeated startup, metadata and bounded dynamic catalogs, hidden/direct-media denial, PNG validation/dimensions/public fallbacks, artist/PWA names/assets, queue snapshots, Store/catalog continuity, active feedback/draft context, repeat-one and responsive 240-row scrolling. Dark-accent primary controls have a rendered contrast check. See [the complete release evidence and limitations](player-redesign.md).
+
+The isolated non-root/read-only container build/smoke check passes, including persisted roles/sessions, range bytes, dynamic catalogs, public icons and private feedback through restart. The reproducible `npm run test:container` uses only fresh synthetic storage and is included in PR CI. An initial browser invocation encountered a leftover local preview server on the test port; that process was stopped and the isolated suite rerun. Early assertions were adjusted for the new accessible catalog-region label and multiple users' private feedback; no production data was involved.
+
+Physical Android/iOS installation, long background/locked playback, real Bluetooth/vehicle controls, OS interruption/handover and a full accessibility audit remain pending. Neither live application was visited or changed.

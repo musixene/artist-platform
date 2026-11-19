@@ -11,7 +11,7 @@ Status: architecture and metering direction accepted; first installation/authent
 | F03 | Installable PWA on Android/iOS where supported. | Real-device matrix verifies HTTPS, manifest, icons, installation instructions, and shell launch. |
 | F04 | Continuous background audio, lock-screen and Bluetooth controls subject to platform capabilities. | Record real-device results for screen lock, app switching, interruptions, and media actions; document limitations/fallbacks. |
 | F05 | Authenticated streaming and private media storage. | Anonymous, expired, revoked, and unauthorized requests cannot obtain new grants; private storage denies public reads; authorized seeking works. |
-| F06 | Artist-managed collections, availability, and per-content pricing including free content. | Create/edit/reorder/publish/unpublish synthetic content and change rates; listeners see only permitted content. |
+| F06 | Artist-managed collections, availability, and per-content pricing including free content. | Create/edit/reorder/show/hide synthetic content and independently classify release status and change rates; listeners see only permitted content. |
 | F07 | Individual listener accounts and separate administration. | Login/logout, recovery, session invalidation, and role checks pass; listeners cannot access administration. |
 | F08 | Likes and private feedback. | Like/unlike and feedback work; unrelated listeners cannot read others’ feedback or private activity. |
 | F09 | Artist analytics. | Synthetic sessions produce accurate documented aggregates; access and retention rules pass; delivery is not labeled verified listening. |
@@ -42,7 +42,7 @@ The covered platform software is licensed under CPAL 1.0 (see LICENSE), includin
 1. Validate Node.js 24/plain browser modules and select the supported mobile/browser matrix within the approved single-artist, modular monolith, container, SQLite, private-local-storage, local-account, authenticated-byte-range baseline. PostgreSQL and object storage are optional later expansions.
 2. Refine the accepted renewable-allowance direction into an approved [metering protocol](credit-metering-review.md): playback-duration evidence, reservations, incremental settlement, reconciliation, missing-event policy, fractional precision, rate snapshots, concurrency, refunds/reversals, expiry, and transferability. Sessions must never introduce a fixed charge.
 3. Administrator bootstrap/recovery, invite-only signup and assisted password resets are delivered; optional email and complete account-deletion UI remain future decisions.
-4. Private feedback retention/export/deletion is documented in [privacy controls](privacy.md); approve the separate analytics policy before implementation.
+4. Player/catalog behavior, schema-4 defaults and artist/PWA branding are documented in [the redesign](player-redesign.md). Private feedback retention/export/deletion is documented in [privacy controls](privacy.md); approve the separate analytics policy before implementation.
 5. Maintain adopted CPAL 1.0 compliance, source notices, contribution rights and required attribution. Exact wording and destination remain fixed requirements.
 
 ## Release evidence
@@ -56,3 +56,9 @@ Reservations reduce available credits without becoming consumption charges. Sett
 ## Current phase coverage
 
 The current application covers local listener authentication, operator configuration/account/media tools, private byte-range playback, queue/seek/shuffle/repeat, PWA shell, and progressive Media Session controls. Browser administration, invitation signup, account roles, private uploads, track controls, collections and branding are implemented with schema-2 preservation tests. Private Likes and Note to Artist feedback, caller-only export/deletion, administrator review/removal and schema-3 migration are implemented. Analytics, full-instance logical exports, commerce, and metered deductions remain future work. Background accounting event loss must not unnecessarily interrupt playback. See [validation](validation.md) for executed versus physical-device checks.
+
+## Player-first milestone (0.2 / schema 4)
+
+Delivered on the redesign branch: single full player, compact independently scrolling rows, active-track feedback, Player/Store navigation, Credits Available Coming Soon, three permanent catalog views, curated/dynamic catalogs, release/visibility separation, content/explicit classifications, genres/tags, and configurable logo/favicon/PWA identity. Store and credits are placeholders only. No analytics, metering, purchases or production deployment is authorized by this milestone.
+
+Acceptance includes queue/source/position continuity while browsing, coherent next/previous/shuffle/repeat, draft preservation across track changes, own Like state/privacy, hidden-track denial, safe PNG image uploads/fallbacks, additive schema-3 preservation/failure/repeated-startup checks, and responsive initial footer visibility. Physical OS/PWA reliability remains subject to device validation.
