@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { openDatabase } from './database.js';
+import { catalog, listenerTracks, listenerCollections } from './catalog.js';
+import { brandingAsset, brandingURL } from './branding.js';
 import { feedback } from './feedback.js';
 import { administer, settings } from './admin.js';
 import { NoChargeAccounting } from '../../packages/domain/accounting.js';
@@ -106,14 +108,32 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
     if (!['GET', 'HEAD', 'POST'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD, POST'); throw fail(405, 'Method not allowed'); }
     if (req.method === 'POST' && req.headers.origin !== config.origin) throw fail(403, 'Origin rejected');
     if (path === '/api/health' && req.method === 'GET') return json(res, 200, { status: 'ok', schema: db.prepare('SELECT max(version) AS version FROM schema_version').get().version });
-    if (path === '/api/config' && req.method === 'GET') return json(res, 200, { ...currentSettings, accounting: { mode: 'disabled', chargesEnabled: false } });
-    if (path === '/theme.css' && ['GET', 'HEAD'].includes(req.method)) {
-      const css = `:root{--accent:${currentSettings.accent}}`;
+    if (path === '/api/config' && req.method === 'GET') return json(res, 200, { ...currentSettings, assets:Object.fromEntries(['logo','favicon','icon192','icon512'].map(kind=>[kind,brandingURL(kind,currentSettings[kind])])), accounting: { mode: 'disabled', chargesEnabled: false } });
+    const branding=/^\/branding\/(logo|favicon|icon192|icon512)$/.exec(path);
+    if(branding && ['GET','HEAD'].includes(req.method)){
+      const kind=branding[1];let data=await brandingAsset(config.dataDir,currentSettings[kind]);
+      if(!data){
+        if(kind==='logo'){res.writeHead(404);return res.end();}
+        const fallback=kind==='icon512'?'icon-512.png':kind==='icon192'?'icon-192.png':'icon.svg';
+        data=await readFile(join(webRoot,fallback));
+        res.writeHead(200,{'Content-Type':fallback.endsWith('.svg')?'image/svg+xml':'image/png','Content-Length':data.length});
+      }else res.writeHead(200,{'Content-Type':'image/png','Content-Length':data.length});
+      return res.end(req.method==='HEAD'?undefined:data);
+    }
+    if (path === '/theme.css'  && ['GET', 'HEAD'].includes(req.method)) {
+      const rgb=currentSettings.accent.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);
+      const luminance=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+      const css = `:root{--accent:${currentSettings.accent};--on-accent:${luminance>.179?'#101512':'#ffffff'}}`;
       res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
       return res.end(req.method === 'HEAD' ? undefined : css);
     }
     if (path === '/manifest.webmanifest' && ['GET', 'HEAD'].includes(req.method)) {
-      const manifest = { id: '/', name: currentSettings.name, short_name: currentSettings.name.slice(0, 24), start_url: '/', scope: '/', display: 'standalone', background_color: '#101512', theme_color: '#101512', icons: [192,512].map(size => ({ src: `/icon-${size}.png`, sizes: `${size}x${size}`, type: 'image/png', purpose: 'any' })) };
+      const custom512=await brandingAsset(config.dataDir,currentSettings.icon512),custom192=await brandingAsset(config.dataDir,currentSettings.icon192);
+      const icons=[];
+      if(custom192)icons.push({src:brandingURL('icon192',currentSettings.icon192),sizes:'192x192',type:'image/png',purpose:'any'});
+      if(custom512)icons.push({src:brandingURL('icon512',currentSettings.icon512),sizes:'512x512',type:'image/png',purpose:'any'});
+      if(!icons.length)for(const size of [192,512])icons.push({src:`/branding/icon${size}`,sizes:`${size}x${size}`,type:'image/png',purpose:'any'});
+      const manifest = { id: '/', name: currentSettings.pwaName||currentSettings.name, short_name: currentSettings.pwaShortName||currentSettings.name.slice(0,24), start_url: '/', scope: '/', display: 'standalone', background_color: '#101512', theme_color: currentSettings.accent, icons };
       res.writeHead(200, { 'Content-Type': 'application/manifest+json' }); return res.end(req.method === 'HEAD' ? undefined : JSON.stringify(manifest));
     }
     if (['/api/register', '/api/login'].includes(path) && req.method === 'POST') {
@@ -166,7 +186,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       if (!user) throw fail(401, 'Please sign in');
       if (req.method === 'POST' && req.headers['x-csrf-token'] !== user.csrf) throw fail(403, 'CSRF token rejected');
       if (path.startsWith('/api/feedback/') || path.startsWith('/api/admin/feedback')) return feedback({req,res,path,url,db,body,json,authenticate:()=>session(req)});
-      if (path.startsWith('/api/admin/')) return administer({ req,res,path,db,config,body,json,user });
+      if (path.startsWith('/api/admin/')) return administer({ req,res,path,db,config,body,json,user,authenticate:()=>session(req) });
       if (path === '/api/me' && req.method === 'GET') return json(res, 200, { user: { id: user.id, username: user.username, role: user.role }, csrf: user.csrf });
       if (path === '/api/logout' && req.method === 'POST') {
         const token = /musixene_session=([a-f0-9]{64})/.exec(req.headers.cookie || '')?.[1];
@@ -174,8 +194,9 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
         res.setHeader('Set-Cookie', `musixene_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${config.secureCookies ? '; Secure' : ''}`);
         return json(res, 200, { ok: true });
       }
-      if (path === '/api/tracks' && req.method === 'GET') return json(res, 200, { tracks: db.prepare('SELECT id, title, artist, artwork, EXISTS(SELECT 1 FROM track_likes WHERE track_id=tracks.id AND user_id=?) AS liked FROM tracks WHERE visible=1 ORDER BY position, created_at, id').all(user.id) });
-      if (path === '/api/collections' && req.method === 'GET') return json(res,200,{ collections: db.prepare('SELECT * FROM collections WHERE visible=1 ORDER BY position,id').all().map(c=>({...c, tracks: db.prepare('SELECT tracks.id,title,artist,artwork FROM collection_tracks JOIN tracks ON tracks.id=track_id WHERE collection_id=? AND tracks.visible=1 ORDER BY collection_tracks.position').all(c.id)})) });
+      if (path === '/api/tracks' && req.method === 'GET') return json(res,200,{tracks:listenerTracks(db,user.id)});
+      if (path === '/api/collections' && req.method === 'GET') return json(res,200,{collections:listenerCollections(db,listenerTracks(db,user.id))});
+      if (path === '/api/catalog' && req.method === 'GET') return json(res,200,catalog(db,user.id));
       const artwork = /^\/api\/tracks\/([a-zA-Z0-9-]+)\/artwork$/.exec(path);
       if (artwork && ['GET','HEAD'].includes(req.method)) {
         const track=db.prepare('SELECT artwork FROM tracks WHERE id=? AND (visible=1 OR ?=1)').get(artwork[1],Number(user.role==='administrator'));

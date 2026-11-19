@@ -21,7 +21,10 @@ export function loadConfig(env = process.env) {
     secureCookies: origin.protocol === 'https:', registration: env.ALLOW_REGISTRATION === 'true',
     branding: {
       name: text(branding.name, 'Independent Artist', 100),
-      tagline: text(branding.tagline, 'A listening room of your own.', 200),
+      tagline: typeof branding.tagline==='string'?branding.tagline.trim().slice(0,200):'A listening room of your own.',
+      wordmark: text(branding.wordmark,'',100),
+      pwaName: text(branding.pwaName,'',100),
+      pwaShortName: text(branding.pwaShortName,'',30),
       accent: /^#[0-9a-f]{6}$/i.test(branding.accent || '') ? branding.accent : '#b8ef70'
     }
   };

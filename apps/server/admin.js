@@ -11,6 +11,9 @@
 import { randomBytes, randomUUID, createHash, scryptSync } from 'node:crypto';
 import { mkdir, open, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { metadata, rules, decodeTrack } from './catalog.js';
+import { validateBrandingPNG } from './branding.js';
 const hash = value => createHash('sha256').update(value).digest('hex');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const text = (value, max) => {
@@ -23,12 +26,12 @@ export function settings(db, config) {
   return { ...config.branding, registration: config.registration, ...Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(row => [row.key, JSON.parse(row.value)])) };
 }
 // Stream directly to a private, exclusive file. Client filenames never become paths.
-async function upload(req, directory, artwork) {
+async function upload(req, directory, artwork, maxBytes) {
   const types = artwork ? { 'image/png': ['.png', b => b.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex'))], 'image/jpeg': ['.jpg', b => b[0]===255 && b[1]===216 && b[2]===255] }
     : { 'audio/wav': ['.wav', b => b.toString('ascii',0,4)==='RIFF' && b.toString('ascii',8,12)==='WAVE'], 'audio/mpeg': ['.mp3', b => b.toString('ascii',0,3)==='ID3' || (b[0]===255 && (b[1]&224)===224)], 'audio/mp4': ['.m4a', b => b.toString('ascii',4,8)==='ftyp'], 'audio/ogg': ['.ogg', b => b.toString('ascii',0,4)==='OggS'] };
   const mime = req.headers['content-type'], type = types[mime];
   if (!type) throw fail(415, 'Unsupported media type');
-  const limit = (artwork ? 5 : 512) * 1024 * 1024;
+  const limit = maxBytes ?? (artwork ? 5 : 512) * 1024 * 1024;
   if (Number(req.headers['content-length']) > limit) throw fail(413, 'Upload too large');
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const filename = randomUUID() + type[0], target = join(directory, filename);
@@ -47,22 +50,36 @@ async function upload(req, directory, artwork) {
   } catch (error) { await unlink(target).catch(() => {}); throw error; }
   finally { await file.close(); }
 }
-export async function administer({ req, res, path, db, config, body, json, user }) {
+export async function administer({ req, res, path, db, config, body, json, user, authenticate }) {
   if (user.role !== 'administrator') throw fail(403, 'Administrator required');
   if (req.method === 'GET' && path === '/api/admin/state') return json(res, 200, {
     settings: settings(db, config),
     users: db.prepare('SELECT id, username, role, disabled, created_at FROM users ORDER BY username').all(),
-    tracks: db.prepare('SELECT id,title,artist,visible,position,artwork FROM tracks ORDER BY position,created_at,id').all(),
+    tracks: db.prepare('SELECT id,title,artist,visible,position,artwork,release_status,explicit_status,content_type,genres,tags FROM tracks ORDER BY position,created_at,id').all().map(decodeTrack),
     invitations: db.prepare('SELECT id,username,expires_at,used_at,created_at FROM invitations ORDER BY created_at DESC').all(),
-    collections: db.prepare('SELECT * FROM collections ORDER BY position,id').all().map(c => ({ ...c, trackIds: db.prepare('SELECT track_id FROM collection_tracks WHERE collection_id=? ORDER BY position').all(c.id).map(t=>t.track_id) }))
+    collections: db.prepare('SELECT * FROM collections ORDER BY position,id').all().map(c => ({ ...c, rules:JSON.parse(c.rules), trackIds: db.prepare('SELECT track_id FROM collection_tracks WHERE collection_id=? ORDER BY position').all(c.id).map(t=>t.track_id) }))
   });
   if (req.method !== 'POST') throw fail(404, 'Administration route not found');
+  const authorized = () => { if(authenticate && authenticate()?.role!=='administrator')throw fail(403,'Administrator session no longer valid'); };
+  const brand=/^\/api\/admin\/branding\/(logo|favicon|icon192|icon512)(\/clear)?$/.exec(path);
+  if(brand){
+    const kind=brand[1];
+    if(brand[2]){await body(req);authorized();db.prepare('DELETE FROM settings WHERE key=?').run(kind);return json(res,200,{ok:true});}
+    if(req.headers['content-type']!=='image/png')throw fail(415,'Branding requires PNG images');
+    const file=await upload(req,join(config.dataDir,'branding'),true,2*1024*1024);
+    try{
+      validateBrandingPNG(await readFile(file.target),kind);authorized();
+      db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(kind,JSON.stringify(file.filename));
+    }catch(error){await unlink(file.target).catch(()=>{});throw error;}
+    return json(res,200,{ok:true});
+  }
   const media = /^\/api\/admin\/tracks\/([a-zA-Z0-9-]+)\/(audio|artwork)$/.exec(path);
   if (media) {
     if (!db.prepare('SELECT id FROM tracks WHERE id=?').get(media[1])) throw fail(404,'Track not found');
     const artwork = media[2] === 'artwork';
     const file = await upload(req, join(config.dataDir, 'media'), artwork);
     try {
+      authorized();
       if (artwork) db.prepare('UPDATE tracks SET artwork=? WHERE id=?').run(file.filename, media[1]);
       else db.prepare('UPDATE tracks SET filename=?,mime=? WHERE id=?').run(file.filename,file.mime,media[1]);
     } catch (error) { await unlink(file.target); throw error; }
@@ -70,8 +87,10 @@ export async function administer({ req, res, path, db, config, body, json, user 
     return json(res,200,{ ok:true });
   }
   const data = await body(req, 65536);
+  authorized();
   if (path === '/api/admin/settings') {
-    const value = { name: text(data.name,100), tagline: text(data.tagline,200), accent: data.accent, registration: Boolean(flag(data.registration)) };
+    const value = { name: text(data.name,100), tagline: typeof data.tagline==='string' && data.tagline.length<=200 ? data.tagline.trim() : text(data.tagline,200), accent: data.accent, registration: Boolean(flag(data.registration)) };
+    for(const [field,max] of [['wordmark',100],['pwaName',100],['pwaShortName',30]])if(data[field]!==undefined){if(typeof data[field]!=='string'||data[field].length>max)throw fail(400,'Invalid branding text');value[field]=data[field].trim();}
     if (!/^#[0-9a-f]{6}$/i.test(value.accent || '')) throw fail(400,'Invalid accent color');
     db.exec('BEGIN IMMEDIATE');
     try { for (const [key,val] of Object.entries(value)) db.prepare('INSERT INTO settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,JSON.stringify(val)); db.exec('COMMIT'); }
@@ -120,19 +139,25 @@ export async function administer({ req, res, path, db, config, body, json, user 
     const record=db.prepare('SELECT * FROM tracks WHERE id=?').get(track[1]);
     if (!record) throw fail(404,'Track not found');
     const visible=flag(data.visible);
-    if (visible && record.filename.endsWith('.pending')) throw fail(409,'Upload audio before publishing');
-    db.prepare('UPDATE tracks SET title=?,artist=?,visible=?,position=?,artwork=? WHERE id=?').run(text(data.title,200),text(data.artist,100),visible,position(data.position),data.removeArtwork ? null : record.artwork,record.id);
+    if (visible && record.filename.endsWith('.pending')) throw fail(409,'Upload audio before making this track available');
+    const meta=metadata(data,record);
+    db.prepare('UPDATE tracks SET title=?,artist=?,visible=?,position=?,artwork=?,release_status=?,explicit_status=?,content_type=?,genres=?,tags=? WHERE id=?').run(text(data.title,200),text(data.artist,100),visible,position(data.position),data.removeArtwork ? null : record.artwork,meta.release_status,meta.explicit_status,meta.content_type,JSON.stringify(meta.genres),JSON.stringify(meta.tags),record.id);
     return json(res,200,{ok:true});
   }
   if (path === '/api/admin/collections') {
     const id=data.id || randomUUID(), title=text(data.title,200), visible=flag(data.visible), order=position(data.position);
     if (typeof id !== 'string' || !/^[a-zA-Z0-9-]+$/.test(id)) throw fail(400,'Invalid collection id');
-    if (!Array.isArray(data.trackIds) || data.trackIds.length >1000 || new Set(data.trackIds).size !== data.trackIds.length || data.trackIds.some(id=>typeof id!=='string' || !db.prepare('SELECT id FROM tracks WHERE id=?').get(id))) throw fail(400,'Invalid or duplicate collection tracks');
+    const previous=db.prepare('SELECT kind,rules FROM collections WHERE id=?').get(id);
+    const kind=data.kind ?? previous?.kind ?? 'curated';
+    if(!['curated','dynamic'].includes(kind))throw fail(400,'Invalid catalog type');
+    const filters=kind==='dynamic'?rules(data.rules ?? JSON.parse(previous?.rules||'{}')):{};
+    const trackIds=kind==='dynamic'?[]:data.trackIds;
+    if (!Array.isArray(trackIds) || trackIds.length >1000 || new Set(trackIds).size !== trackIds.length || trackIds.some(id=>typeof id!=='string' || !db.prepare('SELECT id FROM tracks WHERE id=?').get(id))) throw fail(400,'Invalid or duplicate collection tracks');
     db.exec('BEGIN IMMEDIATE');
     try {
-      db.prepare('INSERT INTO collections VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,visible=excluded.visible,position=excluded.position').run(id,title,visible,order);
+      db.prepare('INSERT INTO collections(id,title,visible,position,kind,rules) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,visible=excluded.visible,position=excluded.position,kind=excluded.kind,rules=excluded.rules').run(id,title,visible,order,kind,JSON.stringify(filters));
       db.prepare('DELETE FROM collection_tracks WHERE collection_id=?').run(id);
-      data.trackIds.forEach((trackId,i)=>db.prepare('INSERT INTO collection_tracks VALUES (?,?,?)').run(id,trackId,i));
+      trackIds.forEach((trackId,i)=>db.prepare('INSERT INTO collection_tracks VALUES (?,?,?)').run(id,trackId,i));
       db.exec('COMMIT');
     } catch(error) { db.exec('ROLLBACK'); throw error; }
     return json(res,200,{id});

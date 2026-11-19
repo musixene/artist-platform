@@ -29,7 +29,7 @@ test('stopped-instance archive restores accounts, sessions, music, settings and 
     const tracks=db.prepare('SELECT id,filename FROM tracks ORDER BY created_at,id').all(), token='b'.repeat(64);
     db.prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(createHash('sha256').update(token).digest('hex'),user.id,'restore-csrf',Date.now()+60000);
     db.prepare('INSERT INTO settings VALUES(?,?)').run('name',JSON.stringify('Restored Artist'));
-    db.prepare('INSERT INTO collections VALUES(?,?,?,?)').run('restored-collection','Archive order',1,0);
+    db.prepare('INSERT INTO collections(id,title,visible,position) VALUES(?,?,?,?)').run('restored-collection','Archive order',1,0);
     db.prepare('INSERT INTO collection_tracks VALUES(?,?,?)').run('restored-collection',tracks[1].id,0);
     db.prepare('INSERT INTO collection_tracks VALUES(?,?,?)').run('restored-collection',tracks[0].id,1);
     db.prepare('INSERT INTO track_likes VALUES(?,?,?)').run(user.id,tracks[0].id,Date.now());

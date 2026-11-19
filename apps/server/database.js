@@ -37,7 +37,7 @@ export function openDatabase(directory) {
     );
   `);
   const version = db.prepare('SELECT max(version) AS version FROM schema_version').get().version;
-  if (version > 3) { db.close(); throw new Error('Database schema is newer than this application'); }
+  if (version > 4) { db.close(); throw new Error('Database schema is newer than this application'); }
   if (version < 2) {
     try {
       db.exec(`BEGIN IMMEDIATE;
@@ -91,6 +91,21 @@ export function openDatabase(directory) {
         );
         CREATE INDEX privacy_audit_time ON privacy_audit(created_at);
         INSERT INTO schema_version VALUES(3);
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
+  }
+  if (version < 4) {
+    try {
+      db.exec(`BEGIN IMMEDIATE;
+        ALTER TABLE tracks ADD COLUMN release_status TEXT NOT NULL DEFAULT 'unpublished' CHECK(release_status IN ('published','unpublished'));
+        ALTER TABLE tracks ADD COLUMN explicit_status TEXT NOT NULL DEFAULT 'unreviewed' CHECK(explicit_status IN ('explicit','non_explicit','unreviewed'));
+        ALTER TABLE tracks ADD COLUMN content_type TEXT NOT NULL DEFAULT 'other';
+        ALTER TABLE tracks ADD COLUMN genres TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(genres) AND json_type(genres)='array');
+        ALTER TABLE tracks ADD COLUMN tags TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(tags) AND json_type(tags)='array');
+        ALTER TABLE collections ADD COLUMN kind TEXT NOT NULL DEFAULT 'curated' CHECK(kind IN ('curated','dynamic'));
+        ALTER TABLE collections ADD COLUMN rules TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(rules) AND json_type(rules)='object');
+        CREATE INDEX track_classification ON tracks(visible,release_status,content_type,explicit_status);
+        INSERT INTO schema_version VALUES(4);
         COMMIT;`);
     } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
   }
