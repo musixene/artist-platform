@@ -155,6 +155,9 @@ test("catalog and Store browsing preserve audio/queue; active feedback and draft
   });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Your note")).toHaveValue("");
+  await expect(dialog.getByRole("status")).toContainText(
+    "You are now writing about Morning signal",
+  );
   await expect(page.locator("#now-title")).toHaveText("Morning signal");
   await expect(
     page.locator("#active-feedback button[aria-pressed=true]"),
@@ -308,6 +311,32 @@ test("hundreds of compact rows scroll independently while player/footer remain v
     path: "/tmp/artist-player-mobile.png",
     fullPage: true,
   });
+  // Simulate CSS safe-area values, not physical iOS/Android behavior.
+  await page.route("**/theme.css", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      body:
+        (await response.text()) + ":root{--safe-top:44px;--safe-bottom:34px}",
+    });
+  });
+  await page.reload();
+  await expect(page.locator(".track")).toHaveCount(240);
+  expect(
+    await page
+      .locator(".app-header")
+      .evaluate((el) => parseFloat(getComputedStyle(el).paddingTop)),
+  ).toBe(44);
+  expect(
+    await page
+      .getByRole("contentinfo")
+      .evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom)),
+  ).toBeGreaterThanOrEqual(42);
+  const notice = await page
+    .getByRole("contentinfo")
+    .locator(".attribution")
+    .boundingBox();
+  expect(notice.y + notice.height).toBeLessThanOrEqual(844 - 34);
 });
 
 test("administrator branding and classification/catalog forms persist without changing media access", async ({
@@ -382,6 +411,12 @@ test("administrator branding and classification/catalog forms persist without ch
   ).toContainText("Dynamic");
   await page.goto("/");
   await expect(page.locator("#brand")).toHaveText("Studio Listening Room");
+  await expect(
+    page.getByRole("link", {
+      name: "Synthetic Studio listening room home",
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(page.locator("#tagline")).toBeHidden();
   const contrast = await page.locator("#play").evaluate((el) => {
     const css = getComputedStyle(el),

@@ -50,6 +50,9 @@ function applyBranding(value) {
   $("tagline").textContent = value.tagline;
   $("tagline").hidden = !value.tagline;
   document.title = `${value.name} · Listening room`;
+  document
+    .querySelector(".wordmark")
+    .setAttribute("aria-label", `${value.name} listening room home`);
   document.querySelector("meta[name=theme-color]").content = value.accent;
   $("favicon").href = value.assets.favicon || "/branding/favicon";
   $("apple-icon").href =
@@ -306,8 +309,10 @@ function activate(id, { autoplay = true, restart = false } = {}) {
     $("active-feedback").replaceChildren(root);
   if (noteWasOpen && changed) {
     root.querySelector("[data-note-button]").click();
-    message(
-      `Draft for ${previous.title} kept for this session. You are now writing about ${track.title}.`,
+    root.dispatchEvent(
+      new CustomEvent("feedback-context", {
+        detail: `Draft for ${previous.title} kept for this session. You are now writing about ${track.title}.`,
+      }),
     );
   }
   if ("mediaSession" in navigator && "MediaMetadata" in window)

@@ -48,7 +48,7 @@ export function trackFeedback(track, { api, liked, onLike, player = false }) {
   const message = status(),
     noteStatus = status();
   const notify = (text) => {
-    message.textContent = text;
+    message.textContent = player && details.open ? "" : text;
     noteStatus.textContent = text;
   };
   const like = button("Like", async () => {
@@ -79,6 +79,7 @@ export function trackFeedback(track, { api, liked, onLike, player = false }) {
   details.append(summary);
   const openNote = button("Note to Artist", () => {
     details.showModal();
+    notify("");
     input.focus();
     load();
   });
@@ -185,6 +186,9 @@ export function trackFeedback(track, { api, liked, onLike, player = false }) {
     more.hidden = true;
     notify("Your feedback was cleared.");
   });
+  root.addEventListener("feedback-context", (event) =>
+    notify(String(event.detail)),
+  );
   root.addEventListener("feedback-state", (event) => {
     liked = Boolean(event.detail);
     paint();
