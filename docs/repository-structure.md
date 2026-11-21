@@ -12,9 +12,10 @@ artist-platform/
 │   ├── server/
 │   │   ├── index.js                   # Startup/configuration and shutdown
 │   │   ├── app.js                     # HTTP/auth/catalog/range delivery
+│   │   ├── diagnostics.js             # Session-bound registration, private reports and retention
 │   │   ├── config.js                  # Artist-owned configuration
-│   │   └── database.js                # SQLite schema v4, transactional migrations and durability settings
-│   └── web/                          # PWA shell, persistent player, queue policy
+│   │   └── database.js                # SQLite schema v5, transactional migrations and durability settings
+│   └── web/                          # PWA shell, persistent player, queue policy, local diagnostics
 ├── packages/domain/accounting.js      # Defined boundary; no charges/reservations
 ├── scripts/
 │   ├── generate-demo.js               # Original synthetic test tones
