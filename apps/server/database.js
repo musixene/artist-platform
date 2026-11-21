@@ -37,7 +37,7 @@ export function openDatabase(directory) {
     );
   `);
   const version = db.prepare('SELECT max(version) AS version FROM schema_version').get().version;
-  if (version > 4) { db.close(); throw new Error('Database schema is newer than this application'); }
+  if (version > 5) { db.close(); throw new Error('Database schema is newer than this application'); }
   if (version < 2) {
     try {
       db.exec(`BEGIN IMMEDIATE;
@@ -106,6 +106,31 @@ export function openDatabase(directory) {
         ALTER TABLE collections ADD COLUMN rules TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(rules) AND json_type(rules)='object');
         CREATE INDEX track_classification ON tracks(visible,release_status,content_type,explicit_status);
         INSERT INTO schema_version VALUES(4);
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
+  }
+  if (version < 5) {
+    try {
+      db.exec(`BEGIN IMMEDIATE;
+        CREATE TABLE diagnostic_sessions (
+          session_hash TEXT PRIMARY KEY REFERENCES sessions(token_hash) ON DELETE CASCADE,
+          context_id TEXT NOT NULL UNIQUE
+        );
+        CREATE TABLE diagnostic_recordings (
+          id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          session_hash TEXT REFERENCES sessions(token_hash) ON DELETE SET NULL,
+          context_id TEXT NOT NULL, generation INTEGER NOT NULL, started_at INTEGER NOT NULL,
+          registered_at INTEGER NOT NULL, digest TEXT, report_id TEXT
+        );
+        CREATE TABLE diagnostic_reports (
+          id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          uploaded_at INTEGER NOT NULL, metadata TEXT NOT NULL, content TEXT NOT NULL
+        );
+        CREATE INDEX diagnostic_report_owner ON diagnostic_reports(owner_id,uploaded_at);
+        INSERT INTO settings VALUES ('diagnostics_enabled','false');
+        INSERT INTO settings VALUES ('diagnostics_retention_days','7');
+        INSERT INTO settings VALUES ('diagnostics_generation','0');
+        INSERT INTO schema_version VALUES(5);
         COMMIT;`);
     } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
   }

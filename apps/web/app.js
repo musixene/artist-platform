@@ -9,6 +9,7 @@
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
 import { trackFeedback, mountFeedbackData } from "./feedback-ui.js";
+import { diagnostics } from "./diagnostics.js";
 import { PlaybackQueue } from "./player.js";
 const $ = (id) => document.getElementById(id),
   audio = $("audio");
@@ -39,6 +40,18 @@ async function api(path, options = {}) {
     },
   });
   const data = await response.json();
+  if (!response.ok) {
+    diagnostics.event(
+      response.status === 401 || response.status === 403
+        ? "authentication"
+        : "network",
+      "request-failed",
+      { status: response.status },
+    );
+    if (response.status === 401)
+      diagnostics.clear({ ownedOnly: true }).catch(() => {});
+    else if (response.status === 403) diagnostics.revalidate().catch(() => {});
+  }
   if (!response.ok)
     throw Object.assign(new Error(data.error || "Request failed"), {
       status: response.status,
@@ -85,6 +98,7 @@ function authMode() {
   $("invitation").hidden = $("invitation-label").hidden = !register;
 }
 function signedOut() {
+  diagnostics.clear({ ownedOnly: true }).catch(() => {});
   sessionGeneration++;
   for (const root of feedbackRoots.values())
     root.querySelector("dialog")?.close();
@@ -115,10 +129,13 @@ function signedOut() {
   $("account-menu").open = false;
   $("auth").hidden = false;
   $("identity").textContent = "";
+  $("diagnostics-link").hidden = true;
 }
 async function signedIn(data) {
   const generation = ++sessionGeneration;
   csrf = data.csrf;
+  await diagnostics.initialize(data).catch(() => {});
+  $("diagnostics-link").hidden = data.user.role !== "administrator";
   const library = await api("/api/catalog");
   if (generation !== sessionGeneration) return;
   tracks = new Map(library.tracks.map((t) => [t.id, t]));
@@ -254,16 +271,44 @@ function updatePosition() {
         playbackRate: audio.playbackRate,
         position: Math.min(duration, position),
       });
-    } catch {
+    } catch (error) {
+      diagnostics.throttled("media_session", "position-update-failed", {
+        error,
+      });
       /* Optional capability. */
     }
+}
+function playbackState() {
+  return {
+    trackId: activeId,
+    positionSeconds: audio.currentTime,
+    durationSeconds: audio.duration,
+    paused: audio.paused,
+    ended: audio.ended,
+    seeking: audio.seeking,
+    readyState: audio.readyState,
+    networkState: audio.networkState,
+    queueLength: queue.ids.length,
+    queueIndex: Math.max(0, queue.ids.indexOf(activeId)),
+    shuffle,
+    repeat,
+  };
+}
+function recordPlayback(event, extra = {}) {
+  diagnostics.event("playback", event, () => ({
+    ...playbackState(),
+    ...extra,
+  }));
 }
 async function play() {
   if (!activeId) return;
   try {
+    recordPlayback("play-requested");
     await audio.play();
+    recordPlayback("play-request-resolved");
     message();
-  } catch {
+  } catch (error) {
+    recordPlayback("play-request-rejected", { error });
     message(
       "Playback could not start. Tap play to retry, or check your connection and sign-in.",
     );
@@ -272,82 +317,113 @@ async function play() {
 function activate(id, { autoplay = true, restart = false } = {}) {
   const track = tracks.get(id);
   if (!track) return;
-  const previous = tracks.get(activeId),
-    oldRoot = feedbackRoots.get(activeId),
-    noteWasOpen = Boolean(oldRoot?.querySelector("dialog")?.open);
-  const changed = activeId !== id;
-  if (changed) oldRoot?.querySelector("dialog")?.close();
-  activeId = id;
-  queue.currentId = id;
-  if (changed || !audio.getAttribute("src")) {
-    audio.src = `/api/tracks/${encodeURIComponent(id)}/audio`;
-    updatePosition();
-  } else if (restart) audio.currentTime = 0;
-  $("now-title").textContent = track.title;
-  $("now-artist").textContent = track.artist;
-  $("now-explicit").hidden = track.explicit_status !== "explicit";
-  $("artwork").onerror = () => {
-    $("artwork").onerror = null;
-    $("artwork").src = "/icon.svg";
-    $("artwork").alt = "No track artwork";
-  };
-  $("artwork").src = track.artwork ? `/api/tracks/${id}/artwork` : "/icon.svg";
-  $("artwork").alt = track.artwork
-    ? `Artwork for ${track.title}`
-    : "No track artwork";
-  if (!feedbackRoots.has(id)) {
-    const generation = sessionGeneration;
-    feedbackRoots.set(
-      id,
-      trackFeedback(track, {
-        api,
-        liked: likes.get(id) || false,
-        onLike: (value) => {
-          if (generation === sessionGeneration) likes.set(id, value);
-        },
-        player: true,
-      }),
-    );
-  }
-  const root = feedbackRoots.get(id);
-  root.dispatchEvent(
-    new CustomEvent("feedback-state", { detail: likes.get(id) || false }),
-  );
-  if ($("active-feedback").firstChild !== root)
-    $("active-feedback").replaceChildren(root);
-  if (noteWasOpen && changed) {
-    root.querySelector("[data-note-button]").click();
+  recordPlayback("activation-started", { nextTrackId: id });
+  try {
+    const previous = tracks.get(activeId),
+      oldRoot = feedbackRoots.get(activeId),
+      noteWasOpen = Boolean(oldRoot?.querySelector("dialog")?.open);
+    const changed = activeId !== id;
+    if (changed) oldRoot?.querySelector("dialog")?.close();
+    activeId = id;
+    queue.currentId = id;
+    if (changed || !audio.getAttribute("src")) {
+      recordPlayback("source-change-initiated");
+      audio.src = `/api/tracks/${encodeURIComponent(id)}/audio`;
+      recordPlayback("source-assigned");
+      updatePosition();
+      recordPlayback("source-change-completed");
+    } else if (restart) audio.currentTime = 0;
+    $("now-title").textContent = track.title;
+    $("now-artist").textContent = track.artist;
+    $("now-explicit").hidden = track.explicit_status !== "explicit";
+    $("artwork").onerror = () => {
+      $("artwork").onerror = null;
+      $("artwork").src = "/icon.svg";
+      $("artwork").alt = "No track artwork";
+    };
+    $("artwork").src = track.artwork
+      ? `/api/tracks/${id}/artwork`
+      : "/icon.svg";
+    $("artwork").alt = track.artwork
+      ? `Artwork for ${track.title}`
+      : "No track artwork";
+    if (!feedbackRoots.has(id)) {
+      const generation = sessionGeneration;
+      feedbackRoots.set(
+        id,
+        trackFeedback(track, {
+          api,
+          liked: likes.get(id) || false,
+          onLike: (value) => {
+            if (generation === sessionGeneration) likes.set(id, value);
+          },
+          player: true,
+        }),
+      );
+    }
+    const root = feedbackRoots.get(id);
     root.dispatchEvent(
-      new CustomEvent("feedback-context", {
-        detail: `Draft for ${previous.title} kept for this session. You are now writing about ${track.title}.`,
-      }),
+      new CustomEvent("feedback-state", { detail: likes.get(id) || false }),
     );
+    if ($("active-feedback").firstChild !== root)
+      $("active-feedback").replaceChildren(root);
+    if (noteWasOpen && changed) {
+      root.querySelector("[data-note-button]").click();
+      root.dispatchEvent(
+        new CustomEvent("feedback-context", {
+          detail: `Draft for ${previous.title} kept for this session. You are now writing about ${track.title}.`,
+        }),
+      );
+    }
+    if ("mediaSession" in navigator && "MediaMetadata" in window) {
+      diagnostics.event(
+        "media_session",
+        "metadata-update-started",
+        playbackState,
+      );
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.title,
+          artist: track.artist,
+          artwork: track.artwork
+            ? [{ src: `/api/tracks/${id}/artwork` }]
+            : [
+                {
+                  src:
+                    config.assets.icon512 ||
+                    config.assets.icon192 ||
+                    "/branding/icon512",
+                  sizes:
+                    config.assets.icon512 || !config.assets.icon192
+                      ? "512x512"
+                      : "192x192",
+                  type: "image/png",
+                },
+              ],
+        });
+        diagnostics.event("media_session", "metadata-updated", playbackState);
+      } catch (error) {
+        diagnostics.event("media_session", "metadata-update-failed", () => ({
+          ...playbackState(),
+          error,
+        }));
+        throw error;
+      }
+    }
+    sync();
+    recordPlayback("activation-completed");
+    if (autoplay) play();
+  } catch (error) {
+    diagnostics.event("application", "activation-failed", () => ({
+      ...playbackState(),
+      error,
+    }));
+    throw error;
   }
-  if ("mediaSession" in navigator && "MediaMetadata" in window)
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.title,
-      artist: track.artist,
-      artwork: track.artwork
-        ? [{ src: `/api/tracks/${id}/artwork` }]
-        : [
-            {
-              src:
-                config.assets.icon512 ||
-                config.assets.icon192 ||
-                "/branding/icon512",
-              sizes:
-                config.assets.icon512 || !config.assets.icon192
-                  ? "512x512"
-                  : "192x192",
-              type: "image/png",
-            },
-          ],
-    });
-  sync();
-  if (autoplay) play();
 }
 function advance(direction = 1, ended = false) {
   const id = queue.next({ direction, ended, shuffle, repeat });
+  recordPlayback("next-track-selected", { nextTrackId: id });
   if (id) activate(id, { restart: true });
 }
 function previous() {
@@ -373,6 +449,7 @@ $("auth-form").addEventListener("submit", async (event) => {
   $("auth-submit").disabled = true;
   message();
   try {
+    await diagnostics.beforeAuthentication().catch(() => {});
     const data = await api(register ? "/api/register" : "/api/login", {
       method: "POST",
       body: JSON.stringify({
@@ -398,15 +475,17 @@ $("auth-toggle").addEventListener("click", () => {
 });
 $("logout").addEventListener("click", async () => {
   try {
+    if (!(await diagnostics.prepareLogout())) return;
     await api("/api/logout", { method: "POST", body: "{}" });
     signedOut();
     message("Signed out.");
   } catch (error) {
+    if (error.status === 401) signedOut();
     message(error.message);
   }
 });
 $("play").addEventListener("click", () =>
-  audio.paused ? play() : audio.pause(),
+  audio.paused ? play() : (recordPlayback("pause-requested"), audio.pause()),
 );
 $("next").addEventListener("click", () => advance());
 $("previous").addEventListener("click", previous);
@@ -430,16 +509,31 @@ $("volume").addEventListener("input", () => {
   audio.volume = Number($("volume").value);
 });
 audio.addEventListener("ended", () => {
+  recordPlayback("ended-received");
   advance(1, true);
   sync();
 });
 for (const event of ["play", "pause"])
   audio.addEventListener(event, () => {
     sync();
-    if ("mediaSession" in navigator)
-      navigator.mediaSession.playbackState = audio.paused
-        ? "paused"
-        : "playing";
+    if ("mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.playbackState = audio.paused
+          ? "paused"
+          : "playing";
+        diagnostics.event(
+          "media_session",
+          "playback-state-updated",
+          playbackState,
+        );
+      } catch (error) {
+        diagnostics.event("media_session", "playback-state-failed", () => ({
+          ...playbackState(),
+          error,
+        }));
+        throw error;
+      }
+    }
   });
 audio.addEventListener("error", () => {
   if (audio.getAttribute("src"))
@@ -483,8 +577,22 @@ if ("mediaSession" in navigator) {
   };
   for (const [action, handler] of Object.entries(actions))
     try {
-      navigator.mediaSession.setActionHandler(action, handler);
-    } catch {
+      navigator.mediaSession.setActionHandler(action, (details) => {
+        diagnostics.event("media_session", `action-${action}`, playbackState);
+        try {
+          return handler(details);
+        } catch (error) {
+          diagnostics.event("media_session", "action-failed", () => ({
+            ...playbackState(),
+            error,
+          }));
+          throw error;
+        }
+      });
+    } catch (error) {
+      diagnostics.event("media_session", "action-registration-failed", {
+        error,
+      });
       /* Optional browser capability. */
     }
 }
@@ -523,6 +631,44 @@ if ("serviceWorker" in navigator)
         "App installation support is unavailable; browser playback still works.",
       ),
     );
+for (const event of [
+  "play",
+  "playing",
+  "pause",
+  "ended",
+  "waiting",
+  "stalled",
+  "suspend",
+  "loadstart",
+  "loadedmetadata",
+  "canplay",
+  "error",
+  "seeking",
+  "seeked",
+  "abort",
+  "emptied",
+]) {
+  audio.addEventListener(event, () =>
+    recordPlayback(
+      `audio-${event}`,
+      audio.error
+        ? {
+            mediaErrorCode: audio.error.code,
+            error: { name: "MediaError", message: audio.error.message },
+          }
+        : {},
+    ),
+  );
+}
+audio.addEventListener("timeupdate", () =>
+  diagnostics.sample(audio, playbackState),
+);
+diagnostics.addEventListener("change", () => {
+  $("diagnostics-link").textContent =
+    diagnostics.state?.status === "recording"
+      ? "Diagnostics · Recording"
+      : "Diagnostics";
+});
 async function boot() {
   try {
     const value = await api("/api/config");

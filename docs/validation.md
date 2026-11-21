@@ -81,3 +81,30 @@ The isolated non-root/read-only container build/smoke check passes, including pe
 Physical Android/iOS installation, long background/locked playback, real Bluetooth/vehicle controls, OS interruption/handover and a full accessibility audit remain pending. Neither live application was visited or changed.
 
 CI exposed a pending-save race in administration: a subsequent form could be edited before refresh completed. Administration now disables/inerts its fieldset while a save is pending, with a deliberately delayed-response regression. A separate delayed-Like/account-switch test protects the next listener’s UI state. CI uses Ubuntu 24.04/Node 24 and retains only synthetic failure traces for diagnosis.
+
+## Diagnostic framework validation and Android field procedure
+
+Automated diagnostics tests use synthesized tones and isolated temporary databases. Server coverage includes all three gates, CSRF/Origin, session ownership, role/disable/expiry changes, bounded validation, idempotence, private history/export/deletion, retention, registration quotas, restart persistence, schema-4 rollback/repeated migration, and preservation of legacy rows/media bytes. Browser coverage exercises navigation/reload, failed play promises, no event streaming, local bounds/privacy, offline recovery, storage failure during audio, permission/session changes and upload-before-logout with bounded timeout/retry/export/discard. Existing queue, feedback, branding, authorization, responsive and container suites remain required.
+
+**Physical Android validation is outstanding. Chromium automation and the illustrative sample are not evidence of a successful locked-phone test or an established root cause.** Run the following matrix after an authorized deployment on an artist-controlled test installation or the approved application instance:
+
+| Context | Audio output | Required runs |
+| --- | --- | --- |
+| Android Chrome tab | Built-in speaker | Short-lock, prolonged-lock, several transitions, unlock/relock, failed-transition recovery |
+| Android Chrome tab | Bluetooth | Same runs, noting connection/disconnection |
+| Installed Android PWA | Built-in speaker | Same runs |
+| Installed Android PWA | Bluetooth | Same runs |
+
+For each run, record device model, Android version, Chrome version, tab/PWA mode, output device, app version, start time and whether Android media controls are present. Use an administrator account; enable and explicitly start a fresh recording. Do not alter Android battery settings between comparisons without recording that fact.
+
+1. **Short-lock baseline:** play a track, seek to about twenty seconds before its end, lock immediately, and observe whether the next track begins and OS controls remain visible.
+2. **Prolonged lock:** start normally, lock for the full track and several consecutive transitions. Record approximate lock duration and each audible transition, including the first failure. Do not unlock simply to inspect the application during this run.
+3. **Unlock/relock comparison:** repeat, unlocking shortly before a transition and immediately relocking; record whether the next track starts.
+4. **Failure recovery:** if playback stops, note whether OS controls disappeared. Unlock, inspect selected track, position and paused state, then press Play once and record the result. Do not assume selection at 0:00 proves `play()` rejection.
+5. Return to Diagnostics, Stop Debug and wait for Saved acknowledgment. Export the private JSON and associate it with the run worksheet. If upload fails, export the local report before ending the session. Inspect `ended-received`, `next-track-selected`, source/activation events, `play-requested`, promise resolve/reject and actual error name, buffering/error events, Media Session failures and lifecycle gaps in sequence order.
+
+An `activation-failed` preceding a missing play request supports a different explanation from a recorded `NotAllowedError`. A resolved play request followed by pause/stall supports another. A large gap or absence of an event is only an observation: Android may have suspended JavaScript or the browser may not have committed the last local write. Do not label a hypothesis as confirmed until an actual exported report and device observations support it. Keep reports private; share manually only if the artist chooses.
+
+For a responsive check, exercise Diagnostics at 390×844 and 1440×900: keyboard tab order, labeled controls, disabled gate explanations, modal focus/Escape, JSON horizontal wrapping/scroll, touch buttons and preservation of the existing player layout. No physical-device results are asserted by this change.
+
+Local validation on 2026-11-20 (America/Denver): 37 Node tests passed; the existing eight Chromium regression tests and twelve diagnostics Chromium tests passed; Docker smoke passed for 0.3.0/schema 5 with non-root/read-only operation, private report upload and restart persistence. Diagnostics was visually inspected at 390×844, with automated overflow checks at 390×844 and 1440×900. These are development/CI checks using synthetic data, not physical Android results.

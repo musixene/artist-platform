@@ -40,6 +40,7 @@ test('stopped-instance archive restores accounts, sessions, music, settings and 
     const logoName='11111111-1111-4111-8111-111111111111.png',logo=png(128,64);
     mkdirSync(join(source,'branding'),{mode:0o700});writeFileSync(join(source,'branding',logoName),logo);
     db.prepare('INSERT INTO settings VALUES(?,?)').run('logo',JSON.stringify(logoName));
+    db.prepare('INSERT INTO diagnostic_reports VALUES(?,?,?,?,?)').run('synthetic-report',user.id,Date.now(),JSON.stringify({id:'synthetic-report'}),JSON.stringify({reportVersion:1,events:[]}));
     db.close(); // No active writer while archiving the entire directory, including any journals.
     execFileSync('tar',['-C',source,'-czf',archive,'.']);mkdirSync(restored,{mode:0o700});
     execFileSync('tar',['--no-same-owner','-xzf',archive,'-C',restored]);
@@ -48,6 +49,7 @@ test('stopped-instance archive restores accounts, sessions, music, settings and 
     await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
     const base=`http://127.0.0.1:${app.server.address().port}`,headers={Cookie:`musixene_session=${token}`};
     assert.equal((await (await fetch(base+'/api/me',{headers})).json()).user.role,'administrator');
+    assert.deepEqual(JSON.parse(app.db.prepare('SELECT content FROM diagnostic_reports WHERE id=?').get('synthetic-report').content),{reportVersion:1,events:[]});
     const feedback=await (await fetch(base+'/api/feedback/export',{headers})).json();assert.equal(feedback.notes[0].body,'Private restore note');assert.equal(feedback.likes[0].track_id,tracks[0].id);
     assert.equal((await (await fetch(base+'/api/config')).json()).name,'Restored Artist');
     const collections=await (await fetch(base+'/api/collections',{headers})).json();assert.deepEqual(collections.collections[0].tracks.map(t=>t.id),[tracks[1].id,tracks[0].id]);
