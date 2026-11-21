@@ -343,6 +343,7 @@ export class Diagnostics extends EventTarget {
       : undefined;
     this.epoch++;
     this.abort?.abort();
+    this.uploading = null;
     this.suspended = true;
     this.state = null;
     this.context = null;
@@ -536,26 +537,29 @@ export class Diagnostics extends EventTarget {
   }
   stop(reason = "manual_stop") {
     if (this.uploading) return this.uploading;
-    this.uploading = this.upload(reason).finally(() => {
-      this.uploading = null;
+    const uploading = this.upload(reason).finally(() => {
+      if (this.uploading === uploading) this.uploading = null;
     });
-    return this.uploading;
+    this.uploading = uploading;
+    return uploading;
   }
   async upload(reason) {
-    if (!this.state) return;
-    this.finalize(reason);
-    if (this.state) this.state.status = "finalizing";
-    await this.flush();
     const epoch = this.epoch,
       state = this.state,
       ctx = this.context;
-    if (!state || !ctx) throw new Error("Original session required");
+    if (!state) return;
+    if (!ctx) throw new Error("Original session required");
+    this.finalize(reason);
+    state.status = "finalizing";
+    await this.flush();
+    if (epoch !== this.epoch) return;
     // Freeze the report across retries, including ambiguous network acknowledgments.
     state.report ||= this.report();
     state.events = state.report.events;
     state.status = "finalizing";
     this.changed();
     await this.flush();
+    if (epoch !== this.epoch) return;
     const controller = new AbortController();
     this.abort = controller;
     let timer;

@@ -528,3 +528,41 @@ test("an unresponsive diagnostic context cannot prevent normal administrator pla
     .toBe(true);
   expect(await diag(page, (d) => window.testDiagnostics.state)).toBeNull();
 });
+
+test("clearing a session cancels a pending finalization before it can submit any report", async ({
+  page,
+  app,
+}) => {
+  await start(page, app);
+  const uploads = [];
+  page.on("request", (r) => {
+    if (r.method() === "POST" && r.url().endsWith("/diagnostics/reports"))
+      uploads.push(r.url());
+  });
+  await diag(page, async () => {
+    const d = window.testDiagnostics,
+      flush = d.flush.bind(d);
+    let calls = 0,
+      resume,
+      entered;
+    const paused = new Promise((resolve) => (resume = resolve)),
+      ready = new Promise((resolve) => (entered = resolve));
+    d.flush = () => {
+      calls++;
+      if (calls >= 3) {
+        entered();
+        return paused;
+      }
+      return flush();
+    };
+    const stopping = d.stop();
+    await ready;
+    await d.clear();
+    resume();
+    await stopping;
+    d.flush = flush;
+  });
+  expect(uploads).toHaveLength(0);
+  expect(await saved(page, app)).toHaveLength(0);
+  expect(await diag(page, () => window.testDiagnostics.state)).toBeNull();
+});
