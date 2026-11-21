@@ -1,0 +1,110 @@
+{
+  "reportVersion": 1,
+  "recordingId": "00000000-0000-4000-8000-000000000001",
+  "startedAt": "2026-11-20T23:00:00.000Z",
+  "endedAt": "2026-11-20T23:05:00.000Z",
+  "durationMs": 300000,
+  "reason": "manual_stop",
+  "applicationVersion": "0.3.0",
+  "browser": {
+    "name": "Chrome",
+    "version": "123.0",
+    "os": "Android",
+    "mode": "PWA"
+  },
+  "droppedEvents": 0,
+  "events": [
+    {
+      "timestamp": "2026-11-20T23:04:00.000Z",
+      "elapsedMs": 240000,
+      "sequence": 1,
+      "category": "playback",
+      "event": "ended-received",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.001Z",
+      "elapsedMs": 240001,
+      "sequence": 2,
+      "category": "playback",
+      "event": "next-track-selected",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.002Z",
+      "elapsedMs": 240002,
+      "sequence": 3,
+      "category": "playback",
+      "event": "source-change-initiated",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.003Z",
+      "elapsedMs": 240003,
+      "sequence": 4,
+      "category": "playback",
+      "event": "source-assigned",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.004Z",
+      "elapsedMs": 240004,
+      "sequence": 5,
+      "category": "playback",
+      "event": "source-change-completed",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.005Z",
+      "elapsedMs": 240005,
+      "sequence": 6,
+      "category": "playback",
+      "event": "play-requested",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.006Z",
+      "elapsedMs": 240006,
+      "sequence": 7,
+      "category": "playback",
+      "event": "play-request-rejected",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true,
+      "error": {
+        "name": "NotAllowedError",
+        "message": "Illustrative synthetic rejection; not an observed Android result"
+      }
+    },
+    {
+      "timestamp": "2026-11-20T23:04:00.007Z",
+      "elapsedMs": 240007,
+      "sequence": 8,
+      "category": "lifecycle",
+      "event": "recording-stopped",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "positionSeconds": 0,
+      "paused": true
+    }
+  ]
+}

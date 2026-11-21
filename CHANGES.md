@@ -2,6 +2,7 @@
 
 CPAL 1.0 Section 3.3 requires a dated record of modifications. Contributors should append substantive changes and dates.
 
+- 2026-11-20 (America/Denver): Added version 0.3 session-bound, operator/instance/admin-gated local diagnostics, schema-5 private report persistence and retention, upload-before-logout recovery, Android playback/lifecycle/Media Session instrumentation and synthetic regression coverage. Playback transition order is preserved; no deployment or claimed physical Android fix.
 - 2026-11-19 (UTC): Added the 0.2 player-first interface, active-track feedback/draft continuity, compact catalog browser and queue separation, artist/PWA branding assets, schema-4 metadata and curated/dynamic catalogs, with preservation/privacy/queue/responsive regression coverage. Credits/Store remain placeholders; no production deployment.
 - 2026-11-15 (America/Denver): Added schema-3 private Likes and Note to Artist feedback, authorized administrator review/removal, private export/deletion controls, rate limits and preservation/privacy/browser coverage.
 - 2026-11-15 (America/Denver): Repaired opening attribution layout and regression checks, included runtime distribution notices, aligned upgrade guidance and added PR regression CI.

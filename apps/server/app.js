@@ -19,6 +19,7 @@ import { promisify } from 'node:util';
 import { openDatabase } from './database.js';
 import { catalog, listenerTracks, listenerCollections } from './catalog.js';
 import { brandingAsset, brandingURL } from './branding.js';
+import { diagnosticService, pruneDiagnostics } from './diagnostics.js';
 import { feedback } from './feedback.js';
 import { administer, settings } from './admin.js';
 import { NoChargeAccounting } from '../../packages/domain/accounting.js';
@@ -30,6 +31,9 @@ const assets = {
   '/feedback-ui.js': ['feedback-ui.js', 'text/javascript; charset=utf-8'],
   '/admin.js': ['admin.js', 'text/javascript; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+  '/diagnostics.js': ['diagnostics.js', 'text/javascript; charset=utf-8'],
+  '/diagnostic-format.js': ['diagnostic-format.js', 'text/javascript; charset=utf-8'],
+  '/diagnostics-ui.js': ['diagnostics-ui.js', 'text/javascript; charset=utf-8'],
   '/player.js': ['player.js', 'text/javascript; charset=utf-8'],
   '/style.css': ['style.css', 'text/css; charset=utf-8'],
   '/sw.js': ['sw.js', 'text/javascript; charset=utf-8'],
@@ -75,6 +79,7 @@ export function parseRange(value, size) {
 }
 export function createApplication(config, { accounting = new NoChargeAccounting() } = {}) {
   const db = openDatabase(config.dataDir);
+  const diagnostics = diagnosticService(db, config, packageInfo.version);
   const attempts = new Map();
   const dummySalt = randomBytes(16).toString('hex');
   const dummyHash = randomBytes(64);
@@ -90,7 +95,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
   function session(req) {
     const token = /(?:^|;\s*)musixene_session=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
     if (!token) return null;
-    return db.prepare('SELECT users.id, users.username, users.role, sessions.csrf FROM sessions JOIN users ON users.id=sessions.user_id WHERE token_hash=? AND expires_at>? AND users.disabled=0').get(hash(token), Date.now());
+    return db.prepare('SELECT users.id, users.username, users.role, sessions.csrf, sessions.token_hash AS sessionHash FROM sessions JOIN users ON users.id=sessions.user_id WHERE token_hash=? AND expires_at>? AND users.disabled=0').get(hash(token), Date.now());
   }
   function issueSession(res, user) {
     const token = randomBytes(32).toString('hex'), csrf = randomBytes(32).toString('hex');
@@ -187,6 +192,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       if (!user) throw fail(401, 'Please sign in');
       if (req.method === 'POST' && req.headers['x-csrf-token'] !== user.csrf) throw fail(403, 'CSRF token rejected');
       if (path.startsWith('/api/feedback/') || path.startsWith('/api/admin/feedback')) return feedback({req,res,path,url,db,body,json,authenticate:()=>session(req)});
+      if (path.startsWith('/api/admin/diagnostics/')) return diagnostics({req,res,path,url,body,json,authenticate:()=>session(req)});
       if (path.startsWith('/api/admin/')) return administer({ req,res,path,db,config,body,json,user,authenticate:()=>session(req) });
       if (path === '/api/me' && req.method === 'GET') return json(res, 200, { user: { id: user.id, username: user.username, role: user.role }, csrf: user.csrf });
       if (path === '/api/logout' && req.method === 'POST') {
@@ -249,6 +255,11 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       json(res, err.status || 500, { error: err.status ? err.message : 'Internal server error' });
     });
   });
+  const retention = setInterval(() => {
+    try { pruneDiagnostics(db); } catch { console.error('Diagnostic retention cleanup failed'); }
+  }, 3600000);
+  retention.unref();
+  server.once('close', () => clearInterval(retention));
   server.requestTimeout = 30_000;
   server.headersTimeout = 15_000;
   return { server, db };

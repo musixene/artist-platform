@@ -8,6 +8,8 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
+import { diagnostics } from "./diagnostics.js";
+import { mountDiagnostics } from "./diagnostics-ui.js";
 import { mountFeedbackAdmin } from "./feedback-ui.js";
 const $ = (id) => document.getElementById(id);
 let csrf = "",
@@ -36,7 +38,13 @@ async function api(path, data, file) {
     body: file || (data === undefined ? undefined : JSON.stringify(data)),
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Request failed");
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403)
+      diagnostics.revalidate().catch(() => {});
+    throw Object.assign(new Error(result.error || "Request failed"), {
+      status: response.status,
+    });
+  }
   return result;
 }
 function field(parent, label, value = "", type = "text") {
@@ -616,6 +624,26 @@ try {
     throw new Error(
       "Administrator access required. Sign in with an administrator account in the listening room.",
     );
+  await diagnostics.initialize(me).catch(() => {});
+  mountDiagnostics($("diagnostics"));
+  $("admin-logout").hidden = false;
+  $("admin-logout").onclick = async () => {
+    $("admin-logout").disabled = true;
+    try {
+      if (await diagnostics.prepareLogout()) {
+        await api("/api/logout", {});
+        await diagnostics.clear().catch(() => {});
+        location.href = "/";
+      }
+    } catch (error) {
+      if (error.status === 401) {
+        await diagnostics.clear().catch(() => {});
+        location.href = "/";
+      } else status(error.message);
+    } finally {
+      $("admin-logout").disabled = false;
+    }
+  };
   await refresh();
   $("administration").hidden = false;
   status("Ready.");

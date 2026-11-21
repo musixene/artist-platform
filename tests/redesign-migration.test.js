@@ -79,6 +79,7 @@ test("schema-3 upgrade preserves all accounts, sessions, invitations, media, cat
   db.prepare(
     "INSERT INTO privacy_audit(actor_id,action,created_at) VALUES(?,?,?)",
   ).run(admin.user.id, "feedback.admin.export", Date.now());
+  db.exec("DROP TABLE diagnostic_reports;DROP TABLE diagnostic_recordings;DROP TABLE diagnostic_sessions;DELETE FROM settings WHERE key GLOB 'diagnostics_*';DELETE FROM schema_version WHERE version=5;");
   // This fixture removes only the new schema-4 additions, reconstructing the deployed schema-3 shape.
   db.exec(
     "DROP INDEX track_classification;ALTER TABLE tracks DROP COLUMN release_status;ALTER TABLE tracks DROP COLUMN explicit_status;ALTER TABLE tracks DROP COLUMN content_type;ALTER TABLE tracks DROP COLUMN genres;ALTER TABLE tracks DROP COLUMN tags;ALTER TABLE collections DROP COLUMN kind;ALTER TABLE collections DROP COLUMN rules;DELETE FROM schema_version WHERE version=4",
@@ -99,7 +100,7 @@ test("schema-3 upgrade preserves all accounts, sessions, invitations, media, cat
   const before = Object.fromEntries(
     tables.map((table) => [
       table,
-      db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all(),
+      db.prepare(`SELECT * FROM ${table}${table === "settings" ? " WHERE key NOT GLOB 'diagnostics_*'" : ""} ORDER BY rowid`).all(),
     ]),
   );
   const media = Object.fromEntries(
@@ -124,7 +125,7 @@ test("schema-3 upgrade preserves all accounts, sessions, invitations, media, cat
   );
   for (const table of tables)
     assert.deepEqual(
-      db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all(),
+      db.prepare(`SELECT * FROM ${table}${table === "settings" ? " WHERE key NOT GLOB 'diagnostics_*'" : ""} ORDER BY rowid`).all(),
       before[table],
     );
   db.exec("DROP INDEX track_classification");
@@ -132,11 +133,11 @@ test("schema-3 upgrade preserves all accounts, sessions, invitations, media, cat
     const migrated = openDatabase(f.directory);
     assert.equal(
       migrated.prepare("SELECT max(version) AS v FROM schema_version").get().v,
-      4,
+      5,
     );
     for (const table of tables) {
       const rows = migrated
-        .prepare(`SELECT * FROM ${table} ORDER BY rowid`)
+        .prepare(`SELECT * FROM ${table}${table === "settings" ? " WHERE key NOT GLOB 'diagnostics_*'" : ""} ORDER BY rowid`)
         .all();
       assert.equal(rows.length, before[table].length);
       rows.forEach((row, index) => {

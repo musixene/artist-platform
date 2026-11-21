@@ -28,8 +28,8 @@ async function ready() {
       const r = await fetch(base + "/api/health");
       if (r.ok) {
         const health = await r.json();
-        assert.equal(health.schema, 4);
-        assert.equal(health.version, "0.2.0");
+        assert.equal(health.schema, 5);
+        assert.equal(health.version, "0.3.0");
         return;
       }
     } catch {}
@@ -80,6 +80,8 @@ try {
     "NODE_ENV=development",
     "-e",
     `APP_ORIGIN=${origin}`,
+    "-e",
+    "DIAGNOSTICS_ALLOWED=true",
     "-v",
     `${volume}:/data`,
     "-p",
@@ -192,8 +194,62 @@ try {
   assert.deepEqual(before.catalogs.find((c) => c.id === dynamic.id).trackIds, [
     first.id,
   ]);
+  const diagnosticBase = "/api/admin/diagnostics";
+  const context = await json(diagnosticBase + "/settings", {
+    auth: admin,
+    data: { enabled: true, retentionDays: 7 },
+  });
+  const recordingId = randomUUID(),
+    startedAt = Date.now();
+  await json(diagnosticBase + "/recordings", {
+    auth: admin,
+    data: { recordingId, startedAt },
+  });
+  const report = {
+    reportVersion: 1,
+    recordingId,
+    startedAt: new Date(startedAt).toISOString(),
+    endedAt: new Date(startedAt).toISOString(),
+    durationMs: 0,
+    reason: "manual_stop",
+    applicationVersion: "0.3.0",
+    browser: { name: "Synthetic", os: "Other", mode: "Browser" },
+    droppedEvents: 0,
+    events: [
+      {
+        timestamp: new Date(startedAt).toISOString(),
+        elapsedMs: 0,
+        sequence: 1,
+        category: "lifecycle",
+        event: "recording-stopped",
+        visibility: "visible",
+      },
+    ],
+  };
+  const receipt = await json(diagnosticBase + "/reports", {
+    auth: admin,
+    data: {
+      recordingId,
+      sessionContext: context.sessionContext,
+      installationId: context.installationId,
+      report,
+    },
+  });
+  assert.equal(receipt.saved, true);
+  assert.equal(
+    (
+      await request(diagnosticBase + "/reports/" + recordingId, {
+        auth: listener,
+      })
+    ).status,
+    403,
+  );
   docker(["restart", name]);
   await ready();
+  assert.deepEqual(
+    await json(diagnosticBase + "/reports/" + recordingId, { auth: admin }),
+    report,
+  );
   const restored = await json("/api/catalog", { auth: listener });
   assert.equal(restored.tracks.length, 2);
   assert.equal(restored.tracks.find((t) => t.id === first.id).liked, 1);
@@ -216,7 +272,7 @@ try {
   assert.equal(after.status, 206);
   assert.deepEqual(Buffer.from(await after.arrayBuffer()), bytes);
   console.log(
-    "Container smoke passed: version 0.2.0/schema 4, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback and restart persistence.",
+    "Container smoke passed: version 0.3.0/schema 5, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics and restart persistence.",
   );
 } finally {
   try {

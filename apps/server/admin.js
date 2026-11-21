@@ -23,7 +23,7 @@ const text = (value, max) => {
 const flag = value => { if (typeof value !== 'boolean') throw fail(400, 'Boolean required'); return Number(value); };
 const position = value => { if (!Number.isSafeInteger(value) || value < 0 || value > 1000000) throw fail(400, 'Invalid position'); return value; };
 export function settings(db, config) {
-  return { ...config.branding, registration: config.registration, ...Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().map(row => [row.key, JSON.parse(row.value)])) };
+  return { ...config.branding, registration: config.registration, ...Object.fromEntries(db.prepare('SELECT key, value FROM settings').all().filter(row => !row.key.startsWith('diagnostics_')).map(row => [row.key, JSON.parse(row.value)])) };
 }
 // Stream directly to a private, exclusive file. Client filenames never become paths.
 async function upload(req, directory, artwork, maxBytes) {

@@ -11,7 +11,8 @@
   </head>
   <body class="admin-page">
     <header>
-      <a href="/">← Listening room</a><strong>Artist administration</strong>
+      <a href="/">← Listening room</a><strong>Artist administration</strong
+      ><button id="admin-logout" hidden>Sign out</button>
     </header>
     <main>
       <p id="admin-status" role="status" aria-live="polite">
@@ -23,8 +24,10 @@
           <a href="#settings">Artist Branding</a> ·
           <a href="#invitations">Invitations</a> ·
           <a href="#listeners">Listeners</a> · <a href="#catalog">Tracks</a> ·
-          <a href="#collections">Catalogs</a>
+          <a href="#collections">Catalogs</a> ·
+          <a href="#diagnostics">Diagnostics</a>
         </nav>
+        <section class="panel" id="diagnostics"></section>
         <section class="panel" id="settings">
           <h1>Artist Branding</h1>
           <div id="settings-form"></div>

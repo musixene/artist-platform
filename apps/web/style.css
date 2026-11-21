@@ -1382,3 +1382,9 @@ dialog {
   padding: 0;
   min-width: 0;
 }
+
+/* Private operational tools; no changes to the player layout. */
+.diagnostic-controls{display:flex;flex-wrap:wrap;gap:.6rem;margin-block:1rem}
+.diagnostic-report{max-height:32rem;max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85rem}
+#diagnostics article{border-top:1px solid var(--border,#536055);padding-block:1rem}
+#diagnostics article button{margin:.25rem}

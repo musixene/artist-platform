@@ -17,6 +17,7 @@ export function loadConfig(env = process.env) {
   if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw new Error('APP_ORIGIN must be an HTTP(S) origin');
   if (env.NODE_ENV === 'production' && origin.protocol !== 'https:') throw new Error('Production requires an HTTPS APP_ORIGIN');
   return {
+    diagnosticsAllowed: env.DIAGNOSTICS_ALLOWED === 'true',
     dataDir: resolve(env.DATA_DIR || 'data'), origin: origin.origin,
     secureCookies: origin.protocol === 'https:', registration: env.ALLOW_REGISTRATION === 'true',
     branding: {
