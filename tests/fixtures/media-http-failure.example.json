@@ -1,0 +1,154 @@
+{
+  "reportVersion": 2,
+  "recordingId": "00000000-0000-4000-8000-000000000001",
+  "startedAt": "2026-11-21T04:55:00.000Z",
+  "endedAt": "2026-11-21T04:55:01.000Z",
+  "durationMs": 1000,
+  "reason": "manual_stop",
+  "applicationVersion": "0.3.1",
+  "browser": {
+    "name": "Synthetic",
+    "version": "157.0",
+    "os": "Android",
+    "mode": "Browser"
+  },
+  "droppedEvents": 0,
+  "events": [
+    {
+      "timestamp": "2026-11-21T04:55:00.000Z",
+      "elapsedMs": 0,
+      "sequence": 1,
+      "category": "playback",
+      "event": "source-assigned",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "documentId": "00000000-0000-4000-8000-000000000003"
+    },
+    {
+      "timestamp": "2026-11-21T04:55:00.043Z",
+      "elapsedMs": 43,
+      "sequence": 2,
+      "category": "playback",
+      "event": "audio-error",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "documentId": "00000000-0000-4000-8000-000000000003",
+      "media": {
+        "sourceGeneration": 1,
+        "sourceStartTime": 100,
+        "snapshotAt": 143,
+        "timeOrigin": 1795236899900,
+        "positionSeconds": 0,
+        "readyState": 0,
+        "networkState": 3,
+        "mediaErrorCode": 4,
+        "paused": true,
+        "ended": false,
+        "online": true,
+        "failedTrackId": "00000000-0000-4000-8000-000000000002",
+        "expectedPath": "/api/tracks/00000000-0000-4000-8000-000000000002/audio",
+        "currentSourcePath": "/api/tracks/00000000-0000-4000-8000-000000000002/audio",
+        "durationSeconds": null,
+        "mime": "audio/mpeg",
+        "canPlayType": "probably",
+        "mediaSessionState": "paused",
+        "buffered": [],
+        "seekable": [],
+        "mediaError": {
+          "name": "MediaError",
+          "message": "Synthetic MEDIA_ELEMENT_ERROR: Format error"
+        },
+        "resources": [],
+        "resourceTimingSupport": "observer"
+      }
+    },
+    {
+      "timestamp": "2026-11-21T04:55:00.050Z",
+      "elapsedMs": 50,
+      "sequence": 3,
+      "category": "network",
+      "event": "audio-resource-timing",
+      "visibility": "hidden",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "documentId": "00000000-0000-4000-8000-000000000003",
+      "resource": {
+        "id": "00000000-0000-4000-8000-000000000004",
+        "documentId": "00000000-0000-4000-8000-000000000003",
+        "trackId": "00000000-0000-4000-8000-000000000002",
+        "timeOrigin": 1795236899900,
+        "startTime": 123,
+        "requestStart": 124,
+        "responseStart": 140,
+        "responseEnd": 145,
+        "duration": 22,
+        "transferSize": 350,
+        "encodedBodySize": 50,
+        "decodedBodySize": 50,
+        "sourceGeneration": 1,
+        "path": "/api/tracks/00000000-0000-4000-8000-000000000002/audio",
+        "initiatorType": "audio",
+        "protocol": "h2",
+        "responseStatus": 401,
+        "statusAvailability": "available",
+        "evidence": "http_auth_failure",
+        "kind": "passive_resource_timing",
+        "purpose": "original_media"
+      }
+    },
+    {
+      "timestamp": "2026-11-21T04:55:00.800Z",
+      "elapsedMs": 800,
+      "sequence": 4,
+      "category": "network",
+      "event": "foreground-media-probe",
+      "visibility": "visible",
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "documentId": "00000000-0000-4000-8000-000000000003",
+      "probe": {
+        "trackId": "00000000-0000-4000-8000-000000000002",
+        "status": 206,
+        "startedAt": 1795236900700,
+        "durationMs": 20,
+        "rangeHonored": true,
+        "mimeMatches": true,
+        "bodyRead": false,
+        "kind": "subsequent_foreground_probe",
+        "path": "/api/tracks/00000000-0000-4000-8000-000000000002/audio",
+        "headerStates": {
+          "contentType": "captured",
+          "contentLength": "captured",
+          "contentRange": "captured",
+          "acceptRanges": "captured",
+          "contentEncoding": "missing"
+        },
+        "contentType": "audio/mpeg",
+        "contentLength": "1",
+        "contentRange": "bytes 0-0/12345",
+        "acceptRanges": "bytes",
+        "evidence": "http_success"
+      }
+    }
+  ],
+  "mediaAnalysis": [
+    {
+      "failureSequence": 2,
+      "trackId": "00000000-0000-4000-8000-000000000002",
+      "documentId": "00000000-0000-4000-8000-000000000003",
+      "sourceGeneration": 1,
+      "candidateResourceIds": [
+        "00000000-0000-4000-8000-000000000004"
+      ],
+      "candidateCount": 1,
+      "omittedCandidateCount": 0,
+      "observedStatuses": [
+        401
+      ],
+      "cases": [
+        "A"
+      ],
+      "conclusiveCause": false,
+      "scope": "original_media_candidates_only",
+      "limitation": "Timing identifies candidate HTTP responses, not redirect chains, response headers, Range requests, body integrity, proxy origin or a codec diagnosis. Missing/zero status is inconclusive. Foreground probes are separate subsequent requests."
+    }
+  ]
+}

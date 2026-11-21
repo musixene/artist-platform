@@ -108,3 +108,38 @@ An `activation-failed` preceding a missing play request supports a different exp
 For a responsive check, exercise Diagnostics at 390×844 and 1440×900: keyboard tab order, labeled controls, disabled gate explanations, modal focus/Escape, JSON horizontal wrapping/scroll, touch buttons and preservation of the existing player layout. No physical-device results are asserted by this change.
 
 Local validation on 2026-11-20 (America/Denver): 37 Node tests passed; the existing eight Chromium regression tests and twelve diagnostics Chromium tests passed; Docker smoke passed for 0.3.0/schema 5 with non-root/read-only operation, private report upload and restart persistence. Diagnostics was visually inspected at 390×844, with automated overflow checks at 390×844 and 1440×900. These are development/CI checks using synthetic data, not physical Android results.
+
+## Phase 2: inspect the original 2026-11-21 media failure first
+
+The operator reports a hidden Android Chrome 157 / regular-tab / app 0.3.0 failure at approximately **2026-11-21 04:55:35 UTC**, for track `9e38b352-de27-4cda-8e4b-3097f4aff7f1`. Selection, source assignment, metadata update and play invocation succeeded; loadstart was followed about 23 ms later by MediaError 4 / Format error and a NotSupportedError rejection. This establishes a media-load/initialization failure, not an unsupported codec or an HTTP cause. The underlying report was summarized by the operator; no production report, media or logs were copied into this checkout.
+
+No hosted-server access is established. Repository inspection found no Node per-request access log, response-header log, range log or connection-close log: the HTTP handler logs only a generic unexpected error code. Consequently there is **no finding about the original request's HTTP status, Range, headers, completion, proxy origin or whether it reached Node**. Existing Nginx/proxy logs may help if retained. Run these read-only commands on the artist server, not the streaming deployment:
+
+```bash
+cd /opt/musixene/artist-platform
+export APP_ORIGIN=https://app.lp19music.com
+# Existing application stdout/stderr only; no logging configuration changes.
+docker compose logs --no-color --timestamps \
+  --since '2026-11-21T04:54:30Z' --until '2026-11-21T04:56:30Z' artist
+# Nginx service errors/start/stop messages, if it is the installed proxy.
+sudo journalctl -u nginx --utc \
+  --since '2026-11-21 04:54:30 UTC' --until '2026-11-21 04:56:30 UTC' --no-pager
+# Inspect existing log paths/formats and routing. Do not publish full config/secrets.
+sudo nginx -T 2>&1 | grep -E 'log_format|access_log|error_log|proxy_pass|proxy_cache|gzip'
+# Search existing and rotated logs for the actual original endpoint.
+media_path='/api/tracks/9e38b352-de27-4cda-8e4b-3097f4aff7f1/audio'
+sudo zgrep -h -F "$media_path" /var/log/nginx/access.log* 2>/dev/null
+sudo zgrep -h -F "$media_path" /var/log/nginx/error.log* 2>/dev/null
+```
+
+Use the actual configured log paths if different. Match approximately ±60 seconds around 04:55:35 **UTC**, converting any access-log local timestamp using its explicit numeric timezone offset. Standard combined Nginx access logs usually show request/status/bytes but not Range, Content-Type, Content-Length, Content-Range, upstream status or request completion. Only report those fields when the configured format actually logged them. An Nginx 499 indicates the client closed the connection before completion; other status codes alone do not prove full body delivery. `$status` describes the proxy response, `$upstream_status` (if logged) helps identify the upstream response, and error-log messages may identify upstream failures. A log line without a matching upstream field cannot establish whether Node or the proxy generated the status. Missing lines are inconclusive when logs are absent, rotated, filtered or incomplete. Do not reload Nginx or enable additional logging for this phase.
+
+### Phase 2 administrator capture procedure
+
+After a separately reviewed/authorized 0.3.1 deployment, finish/export any older recording and reload the app/PWA so the new modules are loaded. Start a fresh recording with the existing operator/instance/admin gates. Record Android/device/Chrome version, regular tab or installed PWA, speaker or Bluetooth and wall-clock lock time. Stay in the player in the same tab. Reproduce the two-minute-or-longer lock-screen transition without manually retrying during the lock.
+
+After failure, unlock and note the selected track/position and whether OS controls disappeared. Before manually resuming or stopping the recording, open the player account menu and select **Test Failed Media Source** once while visible. The action is optional, always a subsequent request, and may be skipped if preserving the failed state matters more. It does not change the audio element. Note its separate time. Then manually test Play if desired and record whether it resumes. Select Stop Debug, wait for saved acknowledgment, and export the report. Keep the report private. Do not reauthenticate to recover an unsaved report.
+
+Compare resource start/response times, document ID and source generation across successful and failed transitions. Check `mediaAnalysis` candidate cases, original resource status availability, MIME/canPlayType hints, current/expected paths, ready/network states, buffer/seekable ranges, actual errors and overlapping-operation flags. A subsequent 206 probe cannot retroactively establish that the original request returned 206. Pair the report with the existing-log inspection above; record unavailable log fields as unavailable rather than inferring them. Automated synthetic success/failure tests are not evidence that prolonged locked Android playback works.
+
+Phase-2 local validation (2026-11-20, America/Denver): 44 Node tests, 40 Chromium tests and the 0.3.1/schema-5 non-root/read-only container smoke passed. Cases cover native audio and manual probes returning 200/206/401/403/404/416/500, unsupported synthetic media, missing timing APIs/status, zero status, multiple ranges, overlap, gate failures, no probe body consumption/retention, legacy report uploads, canonical privacy, report-size reservation, and existing queue/authentication/streaming/logout regressions. The format-2 JSON Schema and sanitized example were also checked with a Draft 2020-12 validator. These are synthetic development checks, not a locked-phone result or a finding about the original server request.

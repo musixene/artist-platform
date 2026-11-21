@@ -133,7 +133,7 @@ export const decodeTrack = (track) => ({
 export function listenerTracks(db, userId) {
   return db
     .prepare(
-      `SELECT id,title,artist,artwork,release_status,explicit_status,content_type,genres,tags,
+      `SELECT id,title,artist,mime,artwork,release_status,explicit_status,content_type,genres,tags,
     EXISTS(SELECT 1 FROM track_likes WHERE track_id=tracks.id AND user_id=?) AS liked
     FROM tracks WHERE visible=1 ORDER BY position,created_at,id`,
     )

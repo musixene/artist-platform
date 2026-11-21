@@ -1,0 +1,795 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/musixene/artist-platform/blob/main/docs/diagnostic-report-v2.schema.json",
+  "title": "Musixene private diagnostic report format 2",
+  "$comment": "Canonical export contract. Original-session authentication is separate. The shared validator additionally enforces 1 MiB, increasing sequence and nondecreasing elapsed time within report duration; server recomputes analysis. No arbitrary URLs or audio bodies.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "reportVersion": {
+      "const": 2
+    },
+    "recordingId": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40
+    },
+    "endedAt": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40
+    },
+    "durationMs": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 86400000
+    },
+    "reason": {
+      "enum": [
+        "manual_stop",
+        "logout",
+        "policy_revoked",
+        "duration_limit",
+        "storage_failure"
+      ]
+    },
+    "applicationVersion": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "os": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "mode": {
+          "type": "string",
+          "maxLength": 60
+        }
+      }
+    },
+    "droppedEvents": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "positionSeconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "durationSeconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "readyState": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "networkState": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "queueLength": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "queueIndex": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "gapMs": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "sinceVisibleMs": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "status": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "mediaErrorCode": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000.0
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "ended": {
+            "type": "boolean"
+          },
+          "seeking": {
+            "type": "boolean"
+          },
+          "shuffle": {
+            "type": "boolean"
+          },
+          "persisted": {
+            "type": "boolean"
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "trackId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "nextTrackId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "documentId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "maxLength": 40
+          },
+          "elapsedMs": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 86400000
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "category": {
+            "enum": [
+              "playback",
+              "media_session",
+              "lifecycle",
+              "authentication",
+              "network",
+              "application"
+            ]
+          },
+          "event": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+          },
+          "visibility": {
+            "enum": [
+              "visible",
+              "hidden"
+            ]
+          },
+          "repeat": {
+            "enum": [
+              "off",
+              "one",
+              "all"
+            ]
+          },
+          "lifecycle": {
+            "enum": [
+              "active",
+              "hidden",
+              "frozen",
+              "restored",
+              "navigating"
+            ]
+          },
+          "error": {
+            "$ref": "#/$defs/error"
+          },
+          "media": {
+            "$ref": "#/$defs/media"
+          },
+          "resource": {
+            "$ref": "#/$defs/resource"
+          },
+          "probe": {
+            "$ref": "#/$defs/probe"
+          }
+        },
+        "required": [
+          "timestamp",
+          "elapsedMs",
+          "sequence",
+          "category",
+          "event",
+          "visibility"
+        ]
+      }
+    },
+    "mediaAnalysis": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "failureSequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "trackId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "documentId": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+          },
+          "sourceGeneration": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000000000.0
+          },
+          "candidateResourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+            },
+            "maxItems": 32
+          },
+          "observedStatuses": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 599
+            }
+          },
+          "cases": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ]
+            }
+          },
+          "conclusiveCause": {
+            "const": false
+          },
+          "scope": {
+            "const": "original_media_candidates_only"
+          },
+          "limitation": {
+            "type": "string"
+          },
+          "candidateCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4008
+          },
+          "omittedCandidateCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4008
+          }
+        },
+        "required": [
+          "failureSequence",
+          "candidateResourceIds",
+          "observedStatuses",
+          "cases",
+          "conclusiveCause",
+          "scope",
+          "limitation"
+        ]
+      }
+    }
+  },
+  "required": [
+    "reportVersion",
+    "recordingId",
+    "startedAt",
+    "endedAt",
+    "durationMs",
+    "reason",
+    "applicationVersion",
+    "browser",
+    "droppedEvents",
+    "events",
+    "mediaAnalysis"
+  ],
+  "$defs": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1600
+        }
+      },
+      "required": [
+        "name",
+        "message"
+      ]
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "documentId": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "trackId": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "timeOrigin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "startTime": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "requestStart": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "responseStart": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "responseEnd": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "transferSize": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "encodedBodySize": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "decodedBodySize": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "sourceGeneration": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/api/tracks/[a-fA-F0-9-]{36}/audio$"
+        },
+        "initiatorType": {
+          "enum": [
+            "audio",
+            "video",
+            "fetch",
+            "other",
+            "xmlhttprequest",
+            ""
+          ]
+        },
+        "protocol": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "responseStatus": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 599
+        },
+        "statusAvailability": {
+          "enum": [
+            "available",
+            "unavailable",
+            "zero"
+          ]
+        },
+        "evidence": {
+          "enum": [
+            "inconclusive",
+            "http_auth_failure",
+            "http_range_failure",
+            "http_unavailable",
+            "http_success",
+            "http_server_error",
+            "http_unexpected"
+          ]
+        },
+        "kind": {
+          "const": "passive_resource_timing"
+        },
+        "purpose": {
+          "enum": [
+            "original_media",
+            "subsequent_foreground_probe",
+            "unclassified"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "purpose",
+        "statusAvailability",
+        "evidence"
+      ]
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceGeneration": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "playOperationId": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "sourceGenerationAtRequest": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "playOperationIdAtRequest": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "operationStartedAt": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "sourceStartTime": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "snapshotAt": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "timeOrigin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "positionSeconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "readyState": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "networkState": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "mediaErrorCode": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "sinceVisibleMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "durationSeconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "ended": {
+          "type": "boolean"
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "sourceChangedSinceRequest": {
+          "type": "boolean"
+        },
+        "playChangedSinceRequest": {
+          "type": "boolean"
+        },
+        "currentSourceMismatch": {
+          "type": "boolean"
+        },
+        "operationTrackId": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "failedTrackId": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "expectedPath": {
+          "type": "string",
+          "pattern": "^/api/tracks/[a-fA-F0-9-]{36}/audio$"
+        },
+        "currentSourcePath": {
+          "type": "string",
+          "pattern": "^/api/tracks/[a-fA-F0-9-]{36}/audio$"
+        },
+        "operationPath": {
+          "type": "string",
+          "pattern": "^/api/tracks/[a-fA-F0-9-]{36}/audio$"
+        },
+        "currentSourceState": {
+          "enum": [
+            "empty",
+            "same_origin_audio",
+            "redacted_or_other"
+          ]
+        },
+        "mime": {
+          "type": "string",
+          "pattern": "^audio/[a-zA-Z0-9.+-]{1,60}$"
+        },
+        "operationMime": {
+          "type": "string",
+          "pattern": "^audio/[a-zA-Z0-9.+-]{1,60}$"
+        },
+        "canPlayType": {
+          "enum": [
+            "",
+            "maybe",
+            "probably"
+          ]
+        },
+        "mediaSessionState": {
+          "enum": [
+            "none",
+            "paused",
+            "playing",
+            "unavailable"
+          ]
+        },
+        "buffered": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000000000.0
+            }
+          }
+        },
+        "seekable": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000000000.0
+            }
+          }
+        },
+        "mediaError": {
+          "$ref": "#/$defs/error"
+        },
+        "playError": {
+          "$ref": "#/$defs/error"
+        },
+        "resources": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        },
+        "resourceTimingSupport": {
+          "enum": [
+            "observer",
+            "snapshot_only",
+            "unavailable"
+          ]
+        }
+      },
+      "required": [
+        "buffered",
+        "seekable",
+        "resources"
+      ]
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trackId": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+        },
+        "status": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "startedAt": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000000.0
+        },
+        "rangeHonored": {
+          "type": "boolean"
+        },
+        "mimeMatches": {
+          "type": "boolean"
+        },
+        "bodyRead": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/api/tracks/[a-fA-F0-9-]{36}/audio$"
+        },
+        "contentType": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "contentLength": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "contentRange": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "acceptRanges": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "contentEncoding": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        },
+        "kind": {
+          "const": "subsequent_foreground_probe"
+        },
+        "evidence": {
+          "enum": [
+            "inconclusive",
+            "http_auth_failure",
+            "http_range_failure",
+            "http_unavailable",
+            "http_success",
+            "http_server_error",
+            "http_unexpected"
+          ]
+        },
+        "headerStates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contentType": {
+              "enum": [
+                "missing",
+                "captured",
+                "redacted"
+              ]
+            },
+            "contentLength": {
+              "enum": [
+                "missing",
+                "captured",
+                "redacted"
+              ]
+            },
+            "contentRange": {
+              "enum": [
+                "missing",
+                "captured",
+                "redacted"
+              ]
+            },
+            "acceptRanges": {
+              "enum": [
+                "missing",
+                "captured",
+                "redacted"
+              ]
+            },
+            "contentEncoding": {
+              "enum": [
+                "missing",
+                "captured",
+                "redacted"
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "evidence"
+      ]
+    }
+  }
+}
