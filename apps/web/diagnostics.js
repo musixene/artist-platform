@@ -8,6 +8,7 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
+import { MediaDiagnostics } from "./media-diagnostics.js";
 import { LIMITS, details, validateReport } from "./diagnostic-format.js";
 const DB_NAME = "musixene-diagnostics-v1";
 const encoder = new TextEncoder();
@@ -113,6 +114,7 @@ function browserDescription() {
 export class Diagnostics extends EventTarget {
   constructor() {
     super();
+    this.media = new MediaDiagnostics(this);
     this.state = null;
     this.context = null;
     this.csrf = "";
@@ -198,6 +200,7 @@ export class Diagnostics extends EventTarget {
     );
   }
   changed() {
+    this.media.sync();
     this.dispatchEvent(new Event("change"));
   }
   async request(path, data, signal) {
@@ -320,6 +323,7 @@ export class Diagnostics extends EventTarget {
           "Permission changed. Recording stopped; export or discard the local report.";
       }
       this.suspended = false;
+      this.permissionValidation = (this.permissionValidation || 0) + 1;
       this.changed();
     } catch (error) {
       if (epoch !== this.epoch) return;
@@ -465,7 +469,7 @@ export class Diagnostics extends EventTarget {
     state.elapsedMs = elapsedMs;
     while (
       state.events.length > LIMITS.events ||
-      state.bytes > LIMITS.bytes - 8192
+      state.bytes > LIMITS.eventBytes
     ) {
       state.bytes -=
         encoder.encode(JSON.stringify(state.events.shift())).length + 1;
@@ -523,7 +527,7 @@ export class Diagnostics extends EventTarget {
     const state = this.state;
     if (!state) throw new Error("No local report");
     return validateReport({
-      reportVersion: 1,
+      reportVersion: 2,
       recordingId: state.id,
       startedAt: new Date(state.startedAt).toISOString(),
       endedAt: state.endedAt || new Date().toISOString(),

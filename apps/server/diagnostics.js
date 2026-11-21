@@ -216,7 +216,7 @@ export function diagnosticService(db, config, version) {
           eventCount: report.events.length,
           sizeBytes: bytes,
           categories: [...new Set(report.events.map((e) => e.category))],
-          reportVersion: 1,
+          reportVersion: report.reportVersion,
           applicationVersion: report.applicationVersion,
           browser: report.browser,
           status: "Saved",

@@ -302,13 +302,25 @@ function recordPlayback(event, extra = {}) {
 }
 async function play() {
   if (!activeId) return;
+  const operation = diagnostics.media.playRequested(
+    activeId,
+    tracks.get(activeId)?.mime,
+  );
   try {
     recordPlayback("play-requested");
     await audio.play();
     recordPlayback("play-request-resolved");
     message();
   } catch (error) {
-    recordPlayback("play-request-rejected", { error });
+    recordPlayback("play-request-rejected", {
+      error,
+      media: diagnostics.media.failure(
+        audio,
+        tracks.get(activeId),
+        operation,
+        error,
+      ),
+    });
     message(
       "Playback could not start. Tap play to retry, or check your connection and sign-in.",
     );
@@ -328,6 +340,7 @@ function activate(id, { autoplay = true, restart = false } = {}) {
     queue.currentId = id;
     if (changed || !audio.getAttribute("src")) {
       recordPlayback("source-change-initiated");
+      diagnostics.media.sourceChange(id);
       audio.src = `/api/tracks/${encodeURIComponent(id)}/audio`;
       recordPlayback("source-assigned");
       updatePosition();
@@ -653,10 +666,13 @@ for (const event of [
       `audio-${event}`,
       audio.error
         ? {
+            media: diagnostics.media.failure(audio, tracks.get(activeId)),
             mediaErrorCode: audio.error.code,
             error: { name: "MediaError", message: audio.error.message },
           }
-        : {},
+        : ["loadedmetadata", "canplay"].includes(event)
+          ? { media: diagnostics.media.snapshot(audio, tracks.get(activeId)) }
+          : {},
     ),
   );
 }
@@ -668,6 +684,13 @@ diagnostics.addEventListener("change", () => {
     diagnostics.state?.status === "recording"
       ? "Diagnostics · Recording"
       : "Diagnostics";
+});
+$("test-failed-media").addEventListener("click", () =>
+  diagnostics.media.probe().catch((error) => message(error.message)),
+);
+diagnostics.addEventListener("change", () => {
+  $("test-failed-media").hidden = !diagnostics.state?.failedMedia;
+  $("test-failed-media").disabled = !diagnostics.media.canProbe();
 });
 async function boot() {
   try {

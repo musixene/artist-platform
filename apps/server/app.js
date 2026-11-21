@@ -31,6 +31,7 @@ const assets = {
   '/feedback-ui.js': ['feedback-ui.js', 'text/javascript; charset=utf-8'],
   '/admin.js': ['admin.js', 'text/javascript; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+  '/media-diagnostics.js': ['media-diagnostics.js', 'text/javascript; charset=utf-8'],
   '/diagnostics.js': ['diagnostics.js', 'text/javascript; charset=utf-8'],
   '/diagnostic-format.js': ['diagnostic-format.js', 'text/javascript; charset=utf-8'],
   '/diagnostics-ui.js': ['diagnostics-ui.js', 'text/javascript; charset=utf-8'],

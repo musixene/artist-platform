@@ -59,6 +59,13 @@ export function mountDiagnostics(root) {
     if (confirm("Permanently discard the unsaved local diagnostic report?"))
       return diagnostics.discard();
   });
+  const probeHelp = document.createElement("p");
+  probeHelp.textContent =
+    "Test Failed Media Source makes a later foreground request for the last failed track. It checks headers without retrying playback. Run it before Stop Debug.";
+  root.append(probeHelp);
+  buttons.probe = button(controls, "Test Failed Media Source", () =>
+    diagnostics.media.probe(),
+  );
   const form = document.createElement("form"),
     enabled = document.createElement("input");
   enabled.type = "checkbox";
@@ -124,6 +131,10 @@ export function mountDiagnostics(root) {
       ? `Started ${new Date(s.startedAt).toLocaleString()} · ${Math.round((s.elapsedMs || 0) / 1000)} seconds observed · ${s.events.length} events · approximately ${s.bytes} bytes · ${s.droppedEvents} older events dropped`
       : "";
     if (!busy) message.textContent = lastError || diagnostics.message;
+    buttons.probe.title = s?.failedMedia
+      ? `Subsequent foreground request for track ${s.failedMedia.trackId}`
+      : "Capture a media failure during Start Debug first.";
+    buttons.probe.disabled = busy || !diagnostics.media.canProbe();
     buttons.start.disabled = busy || !!s || !ctx?.allowed || !ctx.enabled;
     buttons.stop.disabled = busy || s?.status !== "recording";
     buttons.retry.disabled =

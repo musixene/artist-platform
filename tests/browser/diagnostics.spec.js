@@ -8,96 +8,15 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
-import { test as baseTest, expect } from "@playwright/test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { execFileSync } from "node:child_process";
-import { randomUUID, scryptSync } from "node:crypto";
-import { createApplication } from "../../apps/server/app.js";
-import { loadConfig } from "../../apps/server/config.js";
-const test = baseTest.extend({
-  app: async ({}, use) => {
-    const directory = mkdtempSync(join(tmpdir(), "artist-diag-browser-"));
-    execFileSync(process.execPath, ["scripts/generate-demo.js"], {
-      env: { ...process.env, DATA_DIR: directory },
-    });
-    const config = loadConfig({
-        DATA_DIR: directory,
-        DIAGNOSTICS_ALLOWED: "true",
-        APP_ORIGIN: "http://localhost:3000",
-      }),
-      app = createApplication(config);
-    const password = "synthetic diagnostic passphrase",
-      salt = "synthetic-salt",
-      hash = scryptSync(password, salt, 64).toString("hex");
-    for (const [username, role] of [
-      ["admin-one", "administrator"],
-      ["admin-two", "administrator"],
-      ["listener", "listener"],
-    ])
-      app.db
-        .prepare(
-          "INSERT INTO users(id,username,salt,password_hash,created_at,role) VALUES(?,?,?,?,?,?)",
-        )
-        .run(randomUUID(), username, salt, hash, Date.now(), role);
-    await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
-    config.origin = `http://127.0.0.1:${app.server.address().port}`;
-    try {
-      await use({ ...app, url: config.origin, password });
-    } finally {
-      await new Promise((r) => app.server.close(r));
-      app.db.close();
-      rmSync(directory, { recursive: true, force: true });
-    }
-  },
-});
-async function login(page, app, username = "admin-one") {
-  const response = await page.request.post(app.url + "/api/login", {
-    headers: { Origin: app.url },
-    data: { username, password: app.password },
-  });
-  expect(response.ok()).toBeTruthy();
-  return response.json();
-}
-async function start(page, app) {
-  await login(page, app);
-  await page.goto(app.url + "/admin");
-  await expect(
-    page.getByRole("button", { name: "Start Debug", exact: true }),
-  ).toBeDisabled();
-  await page.getByLabel("Instance Diagnostics Enabled").check();
-  await page.getByRole("button", { name: "Save Diagnostic Settings" }).click();
-  await expect(
-    page.getByRole("button", { name: "Start Debug", exact: true }),
-  ).toBeEnabled();
-  await page.getByRole("button", { name: "Start Debug", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Stop Debug", exact: true }),
-  ).toBeEnabled();
-}
-async function diag(page, fn) {
-  await page.evaluate(async () => {
-    window.testDiagnostics = (await import("/diagnostics.js")).diagnostics;
-  });
-  return page.evaluate(fn);
-}
-async function saved(page, app) {
-  const result = await page.request.get(
-    app.url + "/api/admin/diagnostics/reports",
-  );
-  return (await result.json()).reports;
-}
-async function report(page, app) {
-  const reports = await saved(page, app);
-  expect(reports).toHaveLength(1);
-  return (
-    await page.request.get(
-      app.url + "/api/admin/diagnostics/reports/" + reports[0].id,
-    )
-  ).json();
-}
-
+import { expect } from "@playwright/test";
+import {
+  test,
+  start,
+  diag,
+  saved,
+  report,
+  login,
+} from "./diagnostics-fixture.js";
 test("explicit opt-in persists across admin/player navigation and reload; captures transitions and actual play rejection without streaming", async ({
   page,
   app,
@@ -444,7 +363,7 @@ test("owned history can be viewed, exported and deleted; Diagnostics fits mobile
   ).toBeVisible();
   await page.getByRole("button", { name: "View Report", exact: true }).click();
   await expect(page.getByLabel("Diagnostic report JSON")).toContainText(
-    '"reportVersion": 1',
+    '"reportVersion": 2',
   );
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export JSON", exact: true }).click();
