@@ -335,17 +335,21 @@ function activate(id, { autoplay = true, restart = false } = {}) {
       oldRoot = feedbackRoots.get(activeId),
       noteWasOpen = Boolean(oldRoot?.querySelector("dialog")?.open);
     const changed = activeId !== id;
-    if (changed) oldRoot?.querySelector("dialog")?.close();
+    const sourceChanged = changed || !audio.getAttribute("src");
     activeId = id;
     queue.currentId = id;
-    if (changed || !audio.getAttribute("src")) {
+    if (sourceChanged) {
       recordPlayback("source-change-initiated");
       diagnostics.media.sourceChange(id);
       audio.src = `/api/tracks/${encodeURIComponent(id)}/audio`;
       recordPlayback("source-assigned");
-      updatePosition();
       recordPlayback("source-change-completed");
     } else if (restart) audio.currentTime = 0;
+    // Request playback in this activation task, before presentation work. Do not
+    // await the play promise: metadata/feedback must update even if it is pending.
+    if (autoplay) play();
+    if (sourceChanged) updatePosition();
+    if (changed) oldRoot?.querySelector("dialog")?.close();
     $("now-title").textContent = track.title;
     $("now-artist").textContent = track.artist;
     $("now-explicit").hidden = track.explicit_status !== "explicit";
@@ -425,7 +429,6 @@ function activate(id, { autoplay = true, restart = false } = {}) {
     }
     sync();
     recordPlayback("activation-completed");
-    if (autoplay) play();
   } catch (error) {
     diagnostics.event("application", "activation-failed", () => ({
       ...playbackState(),

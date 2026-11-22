@@ -29,7 +29,7 @@ async function ready() {
       if (r.ok) {
         const health = await r.json();
         assert.equal(health.schema, 5);
-        assert.equal(health.version, "0.3.1");
+        assert.equal(health.version, "0.3.2");
         return;
       }
     } catch {}
@@ -272,7 +272,7 @@ try {
   assert.equal(after.status, 206);
   assert.deepEqual(Buffer.from(await after.arrayBuffer()), bytes);
   console.log(
-    "Container smoke passed: version 0.3.1/schema 5, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics and restart persistence.",
+    "Container smoke passed: version 0.3.2/schema 5, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics and restart persistence.",
   );
 } finally {
   try {
