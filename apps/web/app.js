@@ -10,6 +10,7 @@
  */
 import { trackFeedback, mountFeedbackData } from "./feedback-ui.js";
 import { diagnostics } from "./diagnostics.js";
+import { mountListeningTips } from "./listening-tips.js";
 import { PlaybackQueue } from "./player.js";
 const $ = (id) => document.getElementById(id),
   audio = $("audio");
@@ -708,4 +709,5 @@ async function boot() {
     message(error.message);
   }
 }
+mountListeningTips(document);
 boot();

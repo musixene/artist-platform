@@ -268,6 +268,10 @@ test("hundreds of compact rows scroll independently while player/footer remain v
     await page.setViewportSize({ width, height });
     await page.goto("/");
     await expect(page.locator(".track")).toHaveCount(240);
+    if (await page.locator("#listening-tips").isVisible())
+      await page
+        .getByRole("button", { name: "Don’t show again", exact: true })
+        .click();
     await expect(page.locator("#tracks .track-feedback")).toHaveCount(0);
     const before = await page.locator("#player").boundingBox();
     await page.locator("#track-scroll").evaluate((el) => {
@@ -322,6 +326,10 @@ test("hundreds of compact rows scroll independently while player/footer remain v
   });
   await page.reload();
   await expect(page.locator(".track")).toHaveCount(240);
+  if (await page.locator("#listening-tips").isVisible())
+    await page
+      .getByRole("button", { name: "Don’t show again", exact: true })
+      .click();
   expect(
     await page
       .locator(".app-header")

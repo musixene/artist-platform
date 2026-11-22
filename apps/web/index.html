@@ -80,6 +80,9 @@
             <svg class="icon"><use href="#i-user" /></svg>
           </summary>
           <div class="account-panel">
+            <button id="open-listening-tips" type="button">
+              Listening tips
+            </button>
             <strong id="identity"></strong
             ><button id="test-failed-media" type="button" hidden>
               Test Failed Media Source
@@ -105,9 +108,46 @@
       </div>
     </header>
     <main class="app-main">
+      <section
+        id="listening-tips"
+        class="listening-tips"
+        aria-labelledby="listening-tips-title"
+        hidden
+      >
+        <h2 id="listening-tips-title" tabindex="-1">
+          Listening tips &amp; known issues
+        </h2>
+        <p>
+          <strong>Android background playback.</strong> Android’s battery
+          optimization may interrupt playback while the screen is locked. If
+          this happens, check Chrome’s battery setting and consider
+          <strong>Unrestricted</strong>: Android Settings → Apps → Chrome →
+          Battery. Menu names vary by device, and this may increase battery use.
+        </p>
+        <p>
+          For an installed app, check the browser used to install it. This app
+          cannot detect or change your battery setting. Background playback and
+          lock-screen controls depend on your device and browser.
+        </p>
+        <label class="tips-preference"
+          ><input id="listening-tips-reminder" type="checkbox" checked /> Show
+          these tips at launch</label
+        >
+        <p class="tips-storage-note">
+          This preference is saved only in this browser. Reopen Listening tips
+          from the account menu at any time.
+        </p>
+        <p id="listening-tips-status" role="status" aria-live="polite"></p>
+        <div class="tips-actions">
+          <button id="close-listening-tips" type="button">Close</button
+          ><button id="hide-listening-tips" type="button">
+            Don’t show again
+          </button>
+        </div>
+      </section>
       <section id="auth" class="auth-panel" aria-labelledby="auth-title">
         <span class="eyebrow">YOUR LISTENING ROOM</span>
-        <h1 id="auth-title">Come on in.</h1>
+        <h1 id="auth-title" tabindex="-1">Come on in.</h1>
         <p>Sign in for a closer kind of listening.</p>
         <form id="auth-form">
           <label for="username">Username</label

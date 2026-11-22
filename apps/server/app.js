@@ -28,6 +28,7 @@ const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../web');
 const assets = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/admin': ['admin.html', 'text/html; charset=utf-8'],
+  '/listening-tips.js': ['listening-tips.js', 'text/javascript; charset=utf-8'],
   '/feedback-ui.js': ['feedback-ui.js', 'text/javascript; charset=utf-8'],
   '/admin.js': ['admin.js', 'text/javascript; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
