@@ -8,8 +8,8 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
-const CACHE = 'musixene-shell-v6';
-const SHELL = ['/', '/style.css', '/app.js', '/player.js', '/diagnostics.js', '/media-diagnostics.js', '/diagnostic-format.js', '/diagnostics-ui.js', '/feedback-ui.js', '/icon.svg', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'musixene-shell-v7';
+const SHELL = ['/', '/style.css', '/app.js', '/listening-tips.js', '/player.js', '/diagnostics.js', '/media-diagnostics.js', '/diagnostic-format.js', '/diagnostics-ui.js', '/feedback-ui.js', '/icon.svg', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('musixene-shell-') && key !== CACHE).map(key => caches.delete(key))))));
 self.addEventListener('fetch', event => {

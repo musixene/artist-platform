@@ -1388,3 +1388,44 @@ dialog {
 .diagnostic-report{max-height:32rem;max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85rem}
 #diagnostics article{border-top:1px solid var(--border,#536055);padding-block:1rem}
 #diagnostics article button{margin:.25rem}
+
+.listening-tips {
+  flex-shrink: 0;
+  margin: 0 0 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+.listening-tips h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+.listening-tips p {
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.tips-storage-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+.tips-preference {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.tips-preference input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.tips-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.app-main.tips-open .listening-room {
+  flex: none;
+  min-height: auto;
+}
