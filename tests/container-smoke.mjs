@@ -28,8 +28,8 @@ async function ready() {
       const r = await fetch(base + "/api/health");
       if (r.ok) {
         const health = await r.json();
-        assert.equal(health.schema, 6);
-        assert.equal(health.version, "0.4.0");
+        assert.equal(health.schema, 7);
+        assert.equal(health.version, "0.5.0");
         return;
       }
     } catch {}
@@ -265,11 +265,93 @@ try {
     ).status,
     403,
   );
+  let article = (
+    await json("/api/admin/articles", {
+      auth: admin,
+      data: {
+        title: "Synthetic private dispatch",
+        body: [
+          {
+            type: "paragraph",
+            children: [{ text: "Private synthetic writing", bold: true }],
+          },
+        ],
+      },
+    })
+  ).article;
+  const articlePNG = png(64, 64);
+  article = (
+    await json(
+      `/api/admin/articles/${article.id}/images?revision=${article.revision}`,
+      { auth: admin, raw: articlePNG, mime: "image/png" },
+    )
+  ).article;
+  article = (
+    await json(`/api/admin/articles/${article.id}/publish`, {
+      auth: admin,
+      data: { revision: article.revision },
+    })
+  ).article;
+  article = (
+    await json(`/api/admin/articles/${article.id}/prominence`, {
+      auth: admin,
+      data: { revision: article.revision, prominence: "top" },
+    })
+  ).article;
+  const draft = (
+    await json("/api/admin/articles", {
+      auth: admin,
+      data: { title: "Synthetic draft", body: [] },
+    })
+  ).article;
+  await json("/api/admin/social", {
+    auth: admin,
+    data: {
+      label: "Synthetic social profile",
+      url: "https://example.net/artist",
+      platform: "generic",
+      position: 0,
+      enabled: true,
+    },
+  });
+  await json("/api/admin/social", {
+    auth: admin,
+    data: {
+      label: "Hidden social draft",
+      url: "https://example.org/artist",
+      platform: "generic",
+      position: 0,
+      enabled: false,
+    },
+  });
   docker(["restart", name]);
   await ready();
   assert.deepEqual(
     await json(diagnosticBase + "/reports/" + recordingId, { auth: admin }),
     report,
+  );
+  const restoredBlog = await json("/api/blog", { auth: listener });
+  assert.equal(restoredBlog.articles.length, 1);
+  assert.equal(restoredBlog.articles[0].id, article.id);
+  assert.equal(restoredBlog.articles[0].prominence, "top");
+  assert.deepEqual(
+    (await json("/api/blog/" + article.id, { auth: listener })).article,
+    (({ status, created_at, revision, ...rest }) => rest)(article),
+  );
+  assert.equal((await request("/api/blog")).status, 401);
+  assert.equal(
+    (await request("/api/blog/" + draft.id, { auth: listener })).status,
+    404,
+  );
+  const privateImage = "/api/blog/images/" + article.images[0].id;
+  assert.equal((await request(privateImage)).status, 401);
+  const restoredImage = await request(privateImage, { auth: listener });
+  assert.equal(restoredImage.headers.get("cache-control"), "no-store");
+  assert.deepEqual(Buffer.from(await restoredImage.arrayBuffer()), articlePNG);
+  const social = await json("/api/social", { auth: listener });
+  assert.deepEqual(
+    social.links.map((l) => l.label),
+    ["Synthetic social profile"],
   );
   const restored = await json("/api/catalog", { auth: listener });
   assert.equal(restored.tracks.length, 2);
@@ -308,7 +390,7 @@ try {
   assert.equal(after.status, 206);
   assert.deepEqual(Buffer.from(await after.arrayBuffer()), bytes);
   console.log(
-    "Container smoke passed: version 0.4.0/schema 6, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics, exact credits/unlimited audit and restart persistence.",
+    "Container smoke passed: version 0.5.0/schema 7, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics, exact credits/unlimited audit, private articles/images/social and restart persistence.",
   );
 } finally {
   try {

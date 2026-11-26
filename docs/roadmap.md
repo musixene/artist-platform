@@ -8,13 +8,19 @@ This sequence follows the project continuity directive. See the [audit and scope
 
 Administration, local accounts/invitations/private uploads, Likes/private Note to Artist, player-first UI, metadata/curated/dynamic catalogs, artist/PWA branding, passive private diagnostics and dismissible listening tips are delivered on main. The operator verified deployment of 0.3.2. Android Chrome battery optimization was implicated in background networking failures; the operator reports listening works with Chrome Unrestricted. This is device-specific evidence, not universal support. The playback-order experiment was abandoned without merging.
 
-## 0.4 review candidate — qualifying plays and listener credits
+## Delivered 0.4 — qualifying plays and listener credits
 
 The 2026-11-26 approved policy replaces proportional per-minute metering: one qualifying play and one fixed track price after 60 seconds of observed playback per unique engagement. No skip analytics; sub-minute tracks receive no play counts/charges but retain Likes and notes. Pause/resume is the same engagement. Repeat-one restart and a new track selection/automatic advancement create new engagements.
 
 Implement private track/day aggregates, administrator grants/adjustments and unlimited eligibility, finite-price holds and atomic once-only settlement. Charging defaults off; existing tracks/balances default zero and unlimited is assigned explicitly. Preserve the single audio element and listener-favorable uncertainty. See [the current accounting specification](credit-metering-review.md) for evidence limits, privacy/retention, best-effort enforcement and migration/deployment gates.
 
-Review the feature PR, automated regressions, additive schema-6 preservation and real-device behavior before release/activation. This roadmap does not merge or deploy the candidate.
+Version 0.4.0/schema 6 was reviewed, merged and reported deployed/validated by the operator. Physical-device evidence remains installation-specific.
+
+## 0.5 review candidate — private Artist Blog and Social
+
+Four sections: Player, Blog, Social, Store. Add administrator-only formatted publishing and private image uploads, server UTC publication/update lifecycle, chronological Pins and atomic single Top Pin with explicit conflict choices. Blog is one-way: no audio, music integration, Likes/comments, sharing or public article pages. Add a private artist-managed HTTPS social-profile directory using local icons and safe external links, without embeds or platform APIs. Preserve all player/accounting/diagnostic behavior, artist branding and CPAL attribution. Additive schema 7, no seeded artist content. See [publishing behavior, screenshots and deployment/rollback](artist-publishing.md).
+
+Store, external-commerce links, redemption codes and payments remain deferred. PR review and explicit merge/deployment approval are separate gates.
 
 ## 5. Operational hardening and portability
 

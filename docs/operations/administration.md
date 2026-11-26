@@ -4,7 +4,7 @@ This release adds a separate `/admin` interface. Credit charging defaults off; s
 
 ## Bootstrap and recovery
 
-After backing up, start the upgraded app once or run the account tool below. Migrations advance earlier schemas transactionally through schema 6. Version-1 accounts initially become listeners; later administrator roles, disabled state, password hashes, IDs, sessions and invitations are preserved. Existing track visibility/artwork, collections and ordered membership, private feedback and saved artist settings are retained. Migrations do not rewrite, delete, transcode or reimport media. Reopening the current schema is idempotent; a newer schema is rejected.
+After backing up, start the upgraded app once or run the account tool below. Migrations advance earlier schemas transactionally through schema 7. Version-1 accounts initially become listeners; later administrator roles, disabled state, password hashes, IDs, sessions and invitations are preserved. Existing track visibility/artwork, collections and ordered membership, private feedback and saved artist settings are retained. Migrations do not rewrite, delete, transcode or reimport media. Reopening the current schema is idempotent; a newer schema is rejected.
 
 Schema 4 adds release status, explicit classification, content type, genres/tags and catalog kind/rules. Existing tracks default to Unpublished / Unreviewed / Other with empty genres/tags while remaining available or hidden exactly as before. These are mechanical initial defaults, not reviewed content assertions or legal publication determinations. Existing collections become Curated without changing membership/order. New drafts begin Hidden. See [the player/catalog redesign](../player-redesign.md) and [private feedback policy](../privacy.md).
 
@@ -37,38 +37,54 @@ Run from this artist-platform checkout only, against its own Compose project. Su
 
 Prepare `branding.json` from `branding.example.json` if this is a new installation. Retain the existing Compose project name/working directory when upgrading so that its named `artist-data` volume is reused. Stop operator imports/account tools as well as the service during backup. Keep backups private and off-host; they contain password/session hashes, private feedback and media. Copy all of `/data`, including the `branding/` directory; copying the database alone is insufficient.
 
-```sh
+```bash
+set -euo pipefail
 export APP_ORIGIN=https://listen.your-domain.example
-# Run in the existing artist-platform deployment directory, with its normal Compose project.
+# Replace with the exact reviewed merge commit AFTER approval, not a moving branch.
+release=REPLACE_WITH_APPROVED_MERGE_SHA
+[[ "$release" =~ ^[0-9a-f]{40}$ ]] || { echo "Set the approved release SHA first"; exit 1; }
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "Review local tracked changes before continuing"
+  exit 1
+fi
+docker compose config -q
+git fetch origin main
+git merge-base --is-ancestor "$release" origin/main
+git merge-base --is-ancestor HEAD "$release"
+container_id="$(docker compose ps -q artist)"
+test -n "$container_id"
 umask 077
 musixene_backup="$(pwd)/backups/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$musixene_backup"
 git rev-parse HEAD > "$musixene_backup/code-revision.txt"
 cp compose.yaml branding.json "$musixene_backup/"
-# Also securely copy the deployment's environment/proxy configuration if stored elsewhere.
 [ ! -f .env ] || cp .env "$musixene_backup/"
+docker compose config > "$musixene_backup/compose-resolved.yaml"
+docker inspect "$container_id" > "$musixene_backup/container-inspect.json"
+docker compose exec -T artist node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>console.log(JSON.stringify(x)))" > "$musixene_backup/health.json"
+# Restart the existing image if backup fails. Do not proceed on any backup error.
+trap 'docker start "$container_id" >/dev/null || true' EXIT
 docker compose stop artist
-# Read /data through the service's existing named volume, with its WAL included.
-docker compose run --rm --no-deps -T --entrypoint tar artist -C /data -czf - . > "$musixene_backup/data.tar.gz"
-tar -tzf "$musixene_backup/data.tar.gz" >/dev/null
-# Keep the service stopped if backup fails. Do not proceed until verified.
-```
-
-Run the backup block with `set -e` in a script, or check each command's exit status interactively before proceeding. Build/deploy the reviewed branch after the backup succeeds:
-
-```sh
-git fetch origin main
+# Docker copies the stopped volume regardless of the application's file permissions.
+docker cp "$container_id":/data/. - | gzip > "$musixene_backup/data.tar.gz"
+gzip -t "$musixene_backup/data.tar.gz"
+tar -tzf "$musixene_backup/data.tar.gz" > "$musixene_backup/files.txt"
+grep -Eq '^(\./)?artist\.sqlite$' "$musixene_backup/files.txt"
+sha256sum "$musixene_backup/data.tar.gz" > "$musixene_backup/data.tar.gz.sha256"
+trap - EXIT
 git switch main
-git pull --ff-only origin main
-# Verify this is the reviewed release revision before proceeding.
-git rev-parse HEAD
-npm ci
-npm test
-CHROMIUM_PATH=/usr/bin/chromium npm run test:browser  # or install Playwright Chromium
-# Migrations execute on startup; the existing volume remains attached.
-docker compose up --build -d artist
-docker compose exec -T artist node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.json()).then(x=>{if(x.schema!==4)process.exit(1);console.log(x)})"
+git merge --ff-only "$release"
+test "$(git rev-parse HEAD)" = "$release"
+docker compose up -d --no-deps --build --wait --wait-timeout 120 artist
+docker compose exec -T artist node --input-type=module -e '
+const response=await fetch("http://127.0.0.1:3000/api/health");
+const health=await response.json(); console.log(health);
+if(!response.ok||health.version!=="0.5.0"||health.schema!==7)process.exit(1);
+'
+echo "Keep the verified backup: $musixene_backup"
 ```
+
+Version 0.5.0 adds schema 7, private article images under `/data/editorial-images`, and Social links; it does not change charging settings, balances or `.env` requirements. Refresh/reopen the PWA after upgrading to replace shell cache v8 with v9. Verify the four navigation buttons, private article/draft/image access, timestamps, pin conflict choices, social links and existing playback/credits. CI runs isolated synthetic regressions before review; do not generate demo content in a real catalog. If the build or health check fails after migration, inspect `docker compose logs --tail=100 artist`; do not restart old code against schema 7.
 
 For first administrator creation/recovery in the container, use the hidden password prompt above but pipe into `docker compose exec -T artist node scripts/manage-user.js artist-admin administrator` instead. Verify login, track counts, collection membership and full/range playback on the intended artist origin. Do not run demo generation on a real catalog merely to validate the upgrade. No application command touches a separate streaming deployment.
 
@@ -96,3 +112,9 @@ Record the exact reviewed commit and any deployment modifications with each imag
 Back up the stopped instance before upgrading; migration preserves existing records and media, sets all prices/balances to zero and assigns nobody unlimited automatically. In Tracks set Credits per qualifying play (0 = free). In Listeners open an account, grant a decimal amount or explicitly select Unlimited credits, enter a reason, and Save listener credits. A zero adjustment changes eligibility only. Subtract cannot consume funds held by active engagements. In Plays & credits enable charging only after prices, funds/eligibility and device testing are ready. Disabling charging releases pending holds; unlimited changes do not revoke login sessions.
 
 The dashboard labels qualifying plays, not complete listens, over the last 90 days. Recent financial audit entries are private. Account-menu exports and analytics identity unlinking do not delete financial history. Open crash/orphaned holds expire after 24 hours. No automatic payment collection or purchase flow exists. Old code cannot open schema 6: rollback requires the matching full stopped-data backup and code revision. See [the specification](../credit-metering-review.md) before enabling paid listening, especially background undercounting and modified-client enforcement limitations.
+
+## Artist Blog and Social (0.5 / schema 7)
+
+Use Blog in administration to create a draft, format text with the toolbar, save/preview, upload supporting images and publish. Edits to a published article are live when saved; unpublish first to revise privately. Saving text or changing images on an article that has ever been published advances Updated; the original Published timestamp remains fixed. Pin controls require saved content, so cancelling a Top Pin conflict cannot save unrelated edits. Unpublishing a Top Pin demotes it to standard Pin; republishing retains that Pin and never displaces a new Top Pin.
+
+Social administration configures profile label, HTTPS URL, local icon, numeric order and enabled state. Other/generic supports additional platforms. No account connection, embeds, payments, public article links or sharing tools are provided. New Blog/Social tables start empty; no invented artist material is installed. See [the publishing guide](../artist-publishing.md) for safety limits, review screenshots and rollback commands.

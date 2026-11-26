@@ -21,6 +21,7 @@ import { catalog, listenerTracks, listenerCollections } from './catalog.js';
 import { brandingAsset, brandingURL } from './branding.js';
 import { diagnosticService, pruneDiagnostics } from './diagnostics.js';
 import { listeningService, wallet, creditsEnabled } from './listening.js';
+import { editorialService } from './editorial.js';
 import { feedback } from './feedback.js';
 import { administer, settings } from './admin.js';
 import { NoChargeAccounting } from '../../packages/domain/accounting.js';
@@ -29,6 +30,10 @@ const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../web');
 const assets = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/admin': ['admin.html', 'text/html; charset=utf-8'],
+  '/editorial-format.js': ['editorial-format.js', 'text/javascript; charset=utf-8'],
+  '/editorial-ui.js': ['editorial-ui.js', 'text/javascript; charset=utf-8'],
+  '/article-editor.js': ['article-editor.js', 'text/javascript; charset=utf-8'],
+  '/editorial-admin.js': ['editorial-admin.js', 'text/javascript; charset=utf-8'],
   '/listening.js': ['listening.js', 'text/javascript; charset=utf-8'],
   '/listening-tips.js': ['listening-tips.js', 'text/javascript; charset=utf-8'],
   '/feedback-ui.js': ['feedback-ui.js', 'text/javascript; charset=utf-8'],
@@ -81,10 +86,11 @@ export function parseRange(value, size) {
   }
   return start < size && end >= start ? { start, end } : null;
 }
-export function createApplication(config, { accounting = new NoChargeAccounting(), listeningNow } = {}) {
+export function createApplication(config, { accounting = new NoChargeAccounting(), listeningNow, editorialNow } = {}) {
   const db = openDatabase(config.dataDir);
   const diagnostics = diagnosticService(db, config, packageInfo.version);
   const listening = listeningService(db, listeningNow);
+  const editorial = editorialService(db,config,editorialNow);
   const attempts = new Map();
   const dummySalt = randomBytes(16).toString('hex');
   const dummyHash = randomBytes(64);
@@ -196,6 +202,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       const user = session(req);
       if (!user) throw fail(401, 'Please sign in');
       if (req.method === 'POST' && req.headers['x-csrf-token'] !== user.csrf) throw fail(403, 'CSRF token rejected');
+      if (path === '/api/blog' || path.startsWith('/api/blog/') || path === '/api/social' || path.startsWith('/api/admin/articles') || path.startsWith('/api/admin/social')) return editorial({req,res,path,url,body,json,user,authenticate:()=>session(req)});
       if (path.startsWith('/api/listening/') || path.startsWith('/api/admin/listening')) return listening({req,res,path,url,body,json,user,authenticate:()=>session(req)});
       if (path.startsWith('/api/feedback/') || path.startsWith('/api/admin/feedback')) return feedback({req,res,path,url,db,body,json,authenticate:()=>session(req)});
       if (path.startsWith('/api/admin/diagnostics/')) return diagnostics({req,res,path,url,body,json,authenticate:()=>session(req)});

@@ -20,6 +20,9 @@ Status: architecture and metering direction accepted; first installation/authent
 | F12 | Extensible optional commerce. | Provider-neutral grant/reversal contracts are documented; later adapters verify signatures, duplicates, refunds, and reconciliation. |
 | F13 | Portable data and independently maintainable deployments. | Export documented metadata/media and restore an isolated instance; verify accounts, collections, balances, and privacy. |
 | F14 | Required linked attribution. | Exact text “Powered by an Open Source Concept from Musixene” links to https://musixene.com in the approved location without a service dependency. |
+| F15 | Private one-way Artist Blog with formatted writing and validated supporting images. | Published-only listener access; administrator drafts/preview/edit/delete; original server UTC chronology, content-only Updated timestamps, safe rendering and pagination. |
+| F16 | Normal, Pin and unique Top Pin prominence. | Explicit three-choice conflict handling, atomic replacement/demotion, stable publication ordering and concurrent-operator tests; unpublishing Top Pin demotes to Pin. |
+| F17 | Private artist-managed Social directory. | Safe HTTPS URLs, local/generic icons, enabled-only ordered links, administrator management and noopener/noreferrer external opening; no embeds or social interactions. |
 
 ## Operational and quality requirements
 
@@ -62,3 +65,7 @@ The current application covers local listener authentication, operator configura
 Delivered on the redesign branch: single full player, compact independently scrolling rows, active-track feedback, Player/Store navigation, Credits Available Coming Soon, three permanent catalog views, curated/dynamic catalogs, release/visibility separation, content/explicit classifications, genres/tags, and configurable logo/favicon/PWA identity. Store remains a placeholder; the 0.4 candidate replaces the credits placeholder. No analytics, metering, purchases or production deployment is authorized by this milestone.
 
 Acceptance includes queue/source/position continuity while browsing, coherent next/previous/shuffle/repeat, draft preservation across track changes, own Like state/privacy, hidden-track denial, safe PNG image uploads/fallbacks, additive schema-3 preservation/failure/repeated-startup checks, and responsive initial footer visibility. Physical OS/PWA reliability remains subject to device validation.
+
+## Artist Blog and Social milestone (0.5 / schema 7)
+
+The 0.5 review candidate introduces Player/Blog/Social/Store navigation and private one-way publishing/directory controls. Blog/Social operations do not create music engagements, credit transactions or classifications. Existing ongoing audio may naturally qualify while a reader browses. Store content is unchanged and commerce/redemption remain deferred. Migration adds editorial tables/indexes only; all existing rows/media and exact Musixene attribution remain. See [the publishing specification](artist-publishing.md).

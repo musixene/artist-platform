@@ -37,7 +37,7 @@ export function openDatabase(directory) {
     );
   `);
   const version = db.prepare('SELECT max(version) AS version FROM schema_version').get().version;
-  if (version > 6) { db.close(); throw new Error('Database schema is newer than this application'); }
+  if (version > 7) { db.close(); throw new Error('Database schema is newer than this application'); }
   if (version < 2) {
     try {
       db.exec(`BEGIN IMMEDIATE;
@@ -163,6 +163,36 @@ export function openDatabase(directory) {
         CREATE TRIGGER ledger_no_delete BEFORE DELETE ON credit_ledger BEGIN SELECT RAISE(ABORT,'Credit ledger is append-only'); END;
         INSERT INTO settings VALUES('credits_enabled','false');
         INSERT INTO schema_version VALUES(6);
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
+  }
+  if (version < 7) {
+    try {
+      db.exec(`BEGIN IMMEDIATE;
+        CREATE TABLE articles (
+          id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL CHECK(json_valid(body) AND json_type(body)='array'),
+          excerpt TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published')),
+          prominence TEXT NOT NULL DEFAULT 'normal' CHECK(prominence IN ('normal','pin','top')),
+          created_at INTEGER NOT NULL, published_at INTEGER, updated_at INTEGER, revision INTEGER NOT NULL DEFAULT 1,
+          CHECK(status!='published' OR published_at IS NOT NULL),
+          CHECK(prominence!='top' OR status='published'),
+          CHECK((published_at IS NULL AND updated_at IS NULL) OR (published_at IS NOT NULL AND updated_at>=published_at))
+        );
+        CREATE UNIQUE INDEX one_top_article ON articles(prominence) WHERE prominence='top';
+        CREATE INDEX article_listing ON articles(status,prominence,published_at,id);
+        CREATE TABLE article_images (
+          id TEXT PRIMARY KEY, article_id TEXT NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+          filename TEXT NOT NULL UNIQUE, alt TEXT NOT NULL DEFAULT '', caption TEXT NOT NULL DEFAULT '',
+          position INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL
+        );
+        CREATE INDEX article_image_owner ON article_images(article_id,position,id);
+        CREATE TABLE social_links (
+          id TEXT PRIMARY KEY, label TEXT NOT NULL, url TEXT NOT NULL, platform TEXT NOT NULL DEFAULT 'generic',
+          position INTEGER NOT NULL DEFAULT 0 CHECK(position>=0), enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
+          revision INTEGER NOT NULL DEFAULT 1
+        );
+        CREATE INDEX social_link_order ON social_links(enabled,position,id);
+        INSERT INTO schema_version VALUES(7);
         COMMIT;`);
     } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
   }

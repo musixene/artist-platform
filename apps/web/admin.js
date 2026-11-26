@@ -8,6 +8,7 @@
  * Original and Initial Developer: Musixene (a trade name of Clara Vista Entertainment LLC).
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
+import { mountEditorialAdmin, mountSocialAdmin } from "./editorial-admin.js";
 import { diagnostics } from "./diagnostics.js";
 import { mountDiagnostics } from "./diagnostics-ui.js";
 import { mountFeedbackAdmin } from "./feedback-ui.js";
@@ -44,6 +45,7 @@ async function api(path, data, file) {
       diagnostics.revalidate().catch(() => {});
     throw Object.assign(new Error(result.error || "Request failed"), {
       status: response.status,
+      payload: result,
     });
   }
   return result;
@@ -151,6 +153,16 @@ const splitTerms = (value) =>
     .map((v) => v.trim())
     .filter(Boolean);
 function render() {
+  const editorialAPI = (path, options = {}) =>
+    api(
+      path,
+      options.body === undefined ? undefined : JSON.parse(options.body),
+      options.file,
+    );
+  if (!$("articles").firstChild)
+    mountEditorialAdmin($("articles"), editorialAPI);
+  if (!$("social-links").firstChild)
+    mountSocialAdmin($("social-links"), editorialAPI);
   mountFeedbackAdmin(
     $("feedback"),
     (path, options = {}) =>
