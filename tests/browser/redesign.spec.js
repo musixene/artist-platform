@@ -108,7 +108,7 @@ test("catalog and Store browsing preserve audio/queue; active feedback and draft
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
     page.getByRole("region", { name: "Credits Available", exact: true }),
-  ).toHaveText("Credits AvailableComing Soon");
+  ).toContainText("Charging off");
   await page
     .getByRole("button", { name: "Like Morning signal", exact: true })
     .click();

@@ -92,6 +92,20 @@
             >
             <a id="admin-link" href="/admin" hidden>Administration</a>
             <div id="feedback-data"></div>
+            <details>
+              <summary>Listening data &amp; credits</summary>
+              <p>
+                One qualifying play after 60 seconds observed. No skip
+                analytics. Play analytics are kept for 90 days. Credit audit
+                records are retained for reconciliation.
+              </p>
+              <button id="export-listening" type="button">
+                Export my listening and credit data</button
+              ><button id="erase-listening" type="button">
+                Remove my identity from play analytics
+              </button>
+              <p id="listening-data-status" role="status"></p>
+            </details>
             <details class="install-help">
               <summary>Make this your listening app</summary>
               <p>
@@ -269,6 +283,7 @@
                   ><span id="repeat-one" hidden>1</span>
                 </button>
               </div>
+              <p id="now-price" class="small"></p>
               <div id="active-feedback" class="active-feedback"></div>
             </div>
             <div class="player-bottom">
@@ -290,7 +305,10 @@
             <span
               ><svg class="icon"><use href="#i-credit" /></svg>Credits
               Available</span
-            ><span class="badge">Coming Soon</span>
+            ><span
+              ><span id="credits-value" class="badge">Charging off</span
+              ><small id="credits-held"></small
+            ></span>
           </section>
           <section class="catalog-panel" aria-label="Catalog browser">
             <div class="catalog-heading">

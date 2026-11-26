@@ -15,10 +15,10 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID, scryptSync } from 'node:crypto';
 import { createApplication } from '../apps/server/app.js';
 import { loadConfig } from '../apps/server/config.js';
-export async function fixture(t, env = {}) {
+export async function fixture(t, env = {}, dependencies = {}) {
   const directory=mkdtempSync(join(tmpdir(),'artist-feedback-'));
   execFileSync(process.execPath,['scripts/generate-demo.js'],{env:{...process.env,DATA_DIR:directory}});
-  const origin='http://localhost:3000',app=createApplication(loadConfig({DATA_DIR:directory,APP_ORIGIN:origin,ALLOW_REGISTRATION:'true',...env}));
+  const origin='http://localhost:3000',app=createApplication(loadConfig({DATA_DIR:directory,APP_ORIGIN:origin,ALLOW_REGISTRATION:'true',...env}),dependencies);
   const password='synthetic feedback passphrase',salt='synthetic-salt',derived=scryptSync(password,salt,64).toString('hex');
   for(const [name,role] of [['artist','administrator'],['alice','listener'],['bob','listener']])app.db.prepare('INSERT INTO users(id,username,salt,password_hash,created_at,role) VALUES(?,?,?,?,?,?)').run(randomUUID(),name,salt,derived,Date.now(),role);
   await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));

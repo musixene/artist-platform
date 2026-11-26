@@ -12,6 +12,7 @@ import { randomBytes, randomUUID, createHash, scryptSync } from 'node:crypto';
 import { mkdir, open, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
+import { creditUnits, wallet } from './listening.js';
 import { metadata, rules, decodeTrack } from './catalog.js';
 import { validateBrandingPNG } from './branding.js';
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -54,8 +55,8 @@ export async function administer({ req, res, path, db, config, body, json, user,
   if (user.role !== 'administrator') throw fail(403, 'Administrator required');
   if (req.method === 'GET' && path === '/api/admin/state') return json(res, 200, {
     settings: settings(db, config),
-    users: db.prepare('SELECT id, username, role, disabled, created_at FROM users ORDER BY username').all(),
-    tracks: db.prepare('SELECT id,title,artist,visible,position,artwork,release_status,explicit_status,content_type,genres,tags FROM tracks ORDER BY position,created_at,id').all().map(decodeTrack),
+    users: db.prepare('SELECT id, username, role, disabled, created_at, credits_unlimited FROM users ORDER BY username').all().map(u=>({...u,account:wallet(db,u.id)})),
+    tracks: db.prepare('SELECT id,title,artist,visible,position,artwork,release_status,explicit_status,content_type,genres,tags,price_units FROM tracks ORDER BY position,created_at,id').all().map(decodeTrack),
     invitations: db.prepare('SELECT id,username,expires_at,used_at,created_at FROM invitations ORDER BY created_at DESC').all(),
     collections: db.prepare('SELECT * FROM collections ORDER BY position,id').all().map(c => ({ ...c, rules:JSON.parse(c.rules), trackIds: db.prepare('SELECT track_id FROM collection_tracks WHERE collection_id=? ORDER BY position').all(c.id).map(t=>t.track_id) }))
   });
@@ -141,7 +142,8 @@ export async function administer({ req, res, path, db, config, body, json, user,
     const visible=flag(data.visible);
     if (visible && record.filename.endsWith('.pending')) throw fail(409,'Upload audio before making this track available');
     const meta=metadata(data,record);
-    db.prepare('UPDATE tracks SET title=?,artist=?,visible=?,position=?,artwork=?,release_status=?,explicit_status=?,content_type=?,genres=?,tags=? WHERE id=?').run(text(data.title,200),text(data.artist,100),visible,position(data.position),data.removeArtwork ? null : record.artwork,meta.release_status,meta.explicit_status,meta.content_type,JSON.stringify(meta.genres),JSON.stringify(meta.tags),record.id);
+    const price = data.price === undefined ? record.price_units : creditUnits(data.price);
+    db.prepare('UPDATE tracks SET title=?,artist=?,visible=?,position=?,artwork=?,release_status=?,explicit_status=?,content_type=?,genres=?,tags=?,price_units=? WHERE id=?').run(text(data.title,200),text(data.artist,100),visible,position(data.position),data.removeArtwork ? null : record.artwork,meta.release_status,meta.explicit_status,meta.content_type,JSON.stringify(meta.genres),JSON.stringify(meta.tags),price,record.id);
     return json(res,200,{ok:true});
   }
   if (path === '/api/admin/collections') {

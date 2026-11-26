@@ -1,10 +1,10 @@
 # Artist administration and schema upgrades
 
-This release adds a separate `/admin` interface. It leaves credits disabled; software licensing is now CPAL 1.0. The exact linked footer attribution is retained on both pages. Nothing in this workflow requires access to `stream.musixene.live` or its backups. Do not run these commands in that deployment, mount its storage, or use its MP3 backups.
+This release adds a separate `/admin` interface. Credit charging defaults off; software licensing is now CPAL 1.0. The exact linked footer attribution is retained on both pages. Nothing in this workflow requires access to `stream.musixene.live` or its backups. Do not run these commands in that deployment, mount its storage, or use its MP3 backups.
 
 ## Bootstrap and recovery
 
-After backing up, start the upgraded app once or run the account tool below. Migrations advance earlier schemas transactionally through schema 4. Version-1 accounts initially become listeners; later administrator roles, disabled state, password hashes, IDs, sessions and invitations are preserved. Existing track visibility/artwork, collections and ordered membership, private feedback and saved artist settings are retained. Migrations do not rewrite, delete, transcode or reimport media. Reopening the current schema is idempotent; a newer schema is rejected.
+After backing up, start the upgraded app once or run the account tool below. Migrations advance earlier schemas transactionally through schema 6. Version-1 accounts initially become listeners; later administrator roles, disabled state, password hashes, IDs, sessions and invitations are preserved. Existing track visibility/artwork, collections and ordered membership, private feedback and saved artist settings are retained. Migrations do not rewrite, delete, transcode or reimport media. Reopening the current schema is idempotent; a newer schema is rejected.
 
 Schema 4 adds release status, explicit classification, content type, genres/tags and catalog kind/rules. Existing tracks default to Unpublished / Unreviewed / Other with empty genres/tags while remaining available or hidden exactly as before. These are mechanical initial defaults, not reviewed content assertions or legal publication determinations. Existing collections become Curated without changing membership/order. New drafts begin Hidden. See [the player/catalog redesign](../player-redesign.md) and [private feedback policy](../privacy.md).
 
@@ -90,3 +90,9 @@ Rollback requires the recorded previous code revision **and a complete stopped-i
 ## Corresponding source for a release
 
 Record the exact reviewed commit and any deployment modifications with each image release. Retain its corresponding covered source and notices, and make that source available under CPAL for network deployments. The application links to the public repository; modified operators must ensure that link or their accompanying source offer actually provides their deployed covered modifications. Artist media, credentials and listener data do not belong in source archives. Runtime images include LICENSE, NOTICE and CHANGES.md. Never infer a live revision from the current GitHub branch.
+
+## Qualifying-play credits (0.4 / schema 6)
+
+Back up the stopped instance before upgrading; migration preserves existing records and media, sets all prices/balances to zero and assigns nobody unlimited automatically. In Tracks set Credits per qualifying play (0 = free). In Listeners open an account, grant a decimal amount or explicitly select Unlimited credits, enter a reason, and Save listener credits. A zero adjustment changes eligibility only. Subtract cannot consume funds held by active engagements. In Plays & credits enable charging only after prices, funds/eligibility and device testing are ready. Disabling charging releases pending holds; unlimited changes do not revoke login sessions.
+
+The dashboard labels qualifying plays, not complete listens, over the last 90 days. Recent financial audit entries are private. Account-menu exports and analytics identity unlinking do not delete financial history. Open crash/orphaned holds expire after 24 hours. No automatic payment collection or purchase flow exists. Old code cannot open schema 6: rollback requires the matching full stopped-data backup and code revision. See [the specification](../credit-metering-review.md) before enabling paid listening, especially background undercounting and modified-client enforcement limitations.

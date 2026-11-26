@@ -9,10 +9,9 @@
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
 /**
- * Future accounting boundary. No credits, reservations, timers, or debits exist here.
- * authorizePlayback({ listenerId, trackId }) -> { allowed, mode }
- * Future allowances/reconciliation must preserve listener-favorable uncertainty.
- * Authorization must never rely on a background browser heartbeat in this phase.
+ * Media transport authorization boundary: HTTP delivery never charges for bytes.
+ * Qualifying-play reservations and settlement live in apps/server/listening.js.
+ * Cookie authentication and track visibility remain enforced by the media route.
  */
 export class NoChargeAccounting {
   async authorizePlayback({ listenerId, trackId }) {

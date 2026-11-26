@@ -20,6 +20,7 @@ import { openDatabase } from './database.js';
 import { catalog, listenerTracks, listenerCollections } from './catalog.js';
 import { brandingAsset, brandingURL } from './branding.js';
 import { diagnosticService, pruneDiagnostics } from './diagnostics.js';
+import { listeningService, wallet, creditsEnabled } from './listening.js';
 import { feedback } from './feedback.js';
 import { administer, settings } from './admin.js';
 import { NoChargeAccounting } from '../../packages/domain/accounting.js';
@@ -28,6 +29,7 @@ const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../web');
 const assets = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/admin': ['admin.html', 'text/html; charset=utf-8'],
+  '/listening.js': ['listening.js', 'text/javascript; charset=utf-8'],
   '/listening-tips.js': ['listening-tips.js', 'text/javascript; charset=utf-8'],
   '/feedback-ui.js': ['feedback-ui.js', 'text/javascript; charset=utf-8'],
   '/admin.js': ['admin.js', 'text/javascript; charset=utf-8'],
@@ -79,9 +81,10 @@ export function parseRange(value, size) {
   }
   return start < size && end >= start ? { start, end } : null;
 }
-export function createApplication(config, { accounting = new NoChargeAccounting() } = {}) {
+export function createApplication(config, { accounting = new NoChargeAccounting(), listeningNow } = {}) {
   const db = openDatabase(config.dataDir);
   const diagnostics = diagnosticService(db, config, packageInfo.version);
+  const listening = listeningService(db, listeningNow);
   const attempts = new Map();
   const dummySalt = randomBytes(16).toString('hex');
   const dummyHash = randomBytes(64);
@@ -116,7 +119,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
     if (!['GET', 'HEAD', 'POST'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD, POST'); throw fail(405, 'Method not allowed'); }
     if (req.method === 'POST' && req.headers.origin !== config.origin) throw fail(403, 'Origin rejected');
     if (path === '/api/health' && req.method === 'GET') return json(res, 200, { status: 'ok', version:packageInfo.version, schema: db.prepare('SELECT max(version) AS version FROM schema_version').get().version });
-    if (path === '/api/config' && req.method === 'GET') return json(res, 200, { ...currentSettings, assets:Object.fromEntries(['logo','favicon','icon192','icon512'].map(kind=>[kind,brandingURL(kind,currentSettings[kind])])), accounting: { mode: 'disabled', chargesEnabled: false } });
+    if (path === '/api/config' && req.method === 'GET') return json(res, 200, { ...currentSettings, assets:Object.fromEntries(['logo','favicon','icon192','icon512'].map(kind=>[kind,brandingURL(kind,currentSettings[kind])])), accounting: { mode: creditsEnabled(db) ? 'qualifying-play' : 'disabled', chargesEnabled: creditsEnabled(db) } });
     const branding=/^\/branding\/(logo|favicon|icon192|icon512)$/.exec(path);
     if(branding && ['GET','HEAD'].includes(req.method)){
       const kind=branding[1];let data=await brandingAsset(config.dataDir,currentSettings[kind]);
@@ -193,6 +196,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       const user = session(req);
       if (!user) throw fail(401, 'Please sign in');
       if (req.method === 'POST' && req.headers['x-csrf-token'] !== user.csrf) throw fail(403, 'CSRF token rejected');
+      if (path.startsWith('/api/listening/') || path.startsWith('/api/admin/listening')) return listening({req,res,path,url,body,json,user,authenticate:()=>session(req)});
       if (path.startsWith('/api/feedback/') || path.startsWith('/api/admin/feedback')) return feedback({req,res,path,url,db,body,json,authenticate:()=>session(req)});
       if (path.startsWith('/api/admin/diagnostics/')) return diagnostics({req,res,path,url,body,json,authenticate:()=>session(req)});
       if (path.startsWith('/api/admin/')) return administer({ req,res,path,db,config,body,json,user,authenticate:()=>session(req) });
@@ -205,7 +209,7 @@ export function createApplication(config, { accounting = new NoChargeAccounting(
       }
       if (path === '/api/tracks' && req.method === 'GET') return json(res,200,{tracks:listenerTracks(db,user.id)});
       if (path === '/api/collections' && req.method === 'GET') return json(res,200,{collections:listenerCollections(db,listenerTracks(db,user.id))});
-      if (path === '/api/catalog' && req.method === 'GET') return json(res,200,catalog(db,user.id));
+      if (path === '/api/catalog' && req.method === 'GET') return json(res,200,({...catalog(db,user.id),account:wallet(db,user.id)}));
       const artwork = /^\/api\/tracks\/([a-zA-Z0-9-]+)\/artwork$/.exec(path);
       if (artwork && ['GET','HEAD'].includes(req.method)) {
         const track=db.prepare('SELECT artwork FROM tracks WHERE id=? AND (visible=1 OR ?=1)').get(artwork[1],Number(user.role==='administrator'));

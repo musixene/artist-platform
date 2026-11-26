@@ -37,7 +37,7 @@ export function openDatabase(directory) {
     );
   `);
   const version = db.prepare('SELECT max(version) AS version FROM schema_version').get().version;
-  if (version > 5) { db.close(); throw new Error('Database schema is newer than this application'); }
+  if (version > 6) { db.close(); throw new Error('Database schema is newer than this application'); }
   if (version < 2) {
     try {
       db.exec(`BEGIN IMMEDIATE;
@@ -131,6 +131,38 @@ export function openDatabase(directory) {
         INSERT INTO settings VALUES ('diagnostics_retention_days','7');
         INSERT INTO settings VALUES ('diagnostics_generation','0');
         INSERT INTO schema_version VALUES(5);
+        COMMIT;`);
+    } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
+  }
+  if (version < 6) {
+    try {
+      db.exec(`BEGIN IMMEDIATE;
+        ALTER TABLE users ADD COLUMN credit_units INTEGER NOT NULL DEFAULT 0 CHECK(credit_units BETWEEN 0 AND 1000000000);
+        ALTER TABLE users ADD COLUMN credits_unlimited INTEGER NOT NULL DEFAULT 0 CHECK(credits_unlimited IN (0,1));
+        ALTER TABLE tracks ADD COLUMN price_units INTEGER NOT NULL DEFAULT 0 CHECK(price_units BETWEEN 0 AND 1000000000);
+        CREATE TABLE play_engagements (
+          id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), track_id TEXT NOT NULL REFERENCES tracks(id),
+          started_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, duration_ms INTEGER NOT NULL,
+          price_units INTEGER NOT NULL, held_units INTEGER NOT NULL DEFAULT 0,
+          mode TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'open' CHECK(state IN ('open','closed','qualified')),
+          qualified_at INTEGER, charged_units INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX engagement_owner ON play_engagements(user_id,state,expires_at);
+        CREATE TABLE qualifying_plays (
+          engagement_id TEXT PRIMARY KEY REFERENCES play_engagements(id),
+          user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+          track_id TEXT NOT NULL REFERENCES tracks(id), qualified_at INTEGER NOT NULL
+        );
+        CREATE INDEX qualifying_play_time ON qualifying_plays(qualified_at,track_id);
+        CREATE TABLE credit_ledger (
+          id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
+          actor_id TEXT REFERENCES users(id), engagement_id TEXT UNIQUE REFERENCES play_engagements(id),
+          delta_units INTEGER NOT NULL, unlimited INTEGER, reason TEXT NOT NULL, created_at INTEGER NOT NULL
+        );
+        CREATE TRIGGER ledger_no_update BEFORE UPDATE ON credit_ledger BEGIN SELECT RAISE(ABORT,'Credit ledger is append-only'); END;
+        CREATE TRIGGER ledger_no_delete BEFORE DELETE ON credit_ledger BEGIN SELECT RAISE(ABORT,'Credit ledger is append-only'); END;
+        INSERT INTO settings VALUES('credits_enabled','false');
+        INSERT INTO schema_version VALUES(6);
         COMMIT;`);
     } catch (error) { db.exec('ROLLBACK'); db.close(); throw error; }
   }
