@@ -344,7 +344,7 @@ test("schema-5 upgrade is atomic and repeatable, preserving all existing records
   const f = await fixture(t);
   await f.login("artist");
   f.db.exec(
-    "DROP TABLE credit_ledger;DROP TABLE qualifying_plays;DROP TABLE play_engagements;ALTER TABLE users DROP COLUMN credit_units;ALTER TABLE users DROP COLUMN credits_unlimited;ALTER TABLE tracks DROP COLUMN price_units;DELETE FROM settings WHERE key='credits_enabled';DELETE FROM schema_version WHERE version=6;",
+    "DROP TABLE article_images;DROP TABLE articles;DROP TABLE social_links;DELETE FROM schema_version WHERE version=7;DROP TABLE credit_ledger;DROP TABLE qualifying_plays;DROP TABLE play_engagements;ALTER TABLE users DROP COLUMN credit_units;ALTER TABLE users DROP COLUMN credits_unlimited;ALTER TABLE tracks DROP COLUMN price_units;DELETE FROM settings WHERE key='credits_enabled';DELETE FROM schema_version WHERE version=6;",
   );
   const names = f.db
     .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
@@ -384,7 +384,7 @@ test("schema-5 upgrade is atomic and repeatable, preserving all existing records
     const db = openDatabase(f.directory);
     assert.equal(
       db.prepare("SELECT max(version) AS v FROM schema_version").get().v,
-      6,
+      7,
     );
     for (const name of names.filter(
       (n) => n !== "schema_version" && n !== "settings",

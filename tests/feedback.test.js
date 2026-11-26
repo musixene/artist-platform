@@ -93,7 +93,7 @@ test('pagination, write limits, own deletion, disabled-account retention and acc
 test('schema-3 migration failure rolls back and retries without changing schema-2 records',async t=>{
   const f=await fixture(t);
   // Rebuild just the new tables as a schema-2 fixture, retaining existing account/catalog data.
-  f.db.exec("DROP TABLE credit_ledger;DROP TABLE qualifying_plays;DROP TABLE play_engagements;ALTER TABLE users DROP COLUMN credit_units;ALTER TABLE users DROP COLUMN credits_unlimited;ALTER TABLE tracks DROP COLUMN price_units;DELETE FROM settings WHERE key='credits_enabled';DELETE FROM schema_version WHERE version=6;DROP TABLE diagnostic_reports;DROP TABLE diagnostic_recordings;DROP TABLE diagnostic_sessions;DELETE FROM settings WHERE key GLOB 'diagnostics_*';DELETE FROM schema_version WHERE version=5;");
+  f.db.exec("DROP TABLE article_images;DROP TABLE articles;DROP TABLE social_links;DELETE FROM schema_version WHERE version=7;DROP TABLE credit_ledger;DROP TABLE qualifying_plays;DROP TABLE play_engagements;ALTER TABLE users DROP COLUMN credit_units;ALTER TABLE users DROP COLUMN credits_unlimited;ALTER TABLE tracks DROP COLUMN price_units;DELETE FROM settings WHERE key='credits_enabled';DELETE FROM schema_version WHERE version=6;DROP TABLE diagnostic_reports;DROP TABLE diagnostic_recordings;DROP TABLE diagnostic_sessions;DELETE FROM settings WHERE key GLOB 'diagnostics_*';DELETE FROM schema_version WHERE version=5;");
   f.db.exec('DROP TABLE track_notes;DROP TABLE track_likes;DROP TABLE feedback_write_limits;DROP TABLE privacy_audit;DELETE FROM schema_version WHERE version>=3;DROP INDEX track_classification;ALTER TABLE tracks DROP COLUMN release_status;ALTER TABLE tracks DROP COLUMN explicit_status;ALTER TABLE tracks DROP COLUMN content_type;ALTER TABLE tracks DROP COLUMN genres;ALTER TABLE tracks DROP COLUMN tags;ALTER TABLE collections DROP COLUMN kind;ALTER TABLE collections DROP COLUMN rules;CREATE TABLE track_notes(conflict TEXT)');
   const users=f.db.prepare('SELECT * FROM users').all(),tracks=f.db.prepare('SELECT * FROM tracks').all();
   assert.throws(()=>openDatabase(f.directory),/already exists/);
@@ -102,5 +102,5 @@ test('schema-3 migration failure rolls back and retries without changing schema-
   assert.equal(inspect.prepare("SELECT name FROM sqlite_master WHERE name='track_likes'").get(),undefined);
   assert.deepEqual(inspect.prepare('SELECT * FROM users').all(),users);assert.deepEqual(inspect.prepare('SELECT * FROM tracks').all(),tracks);
   inspect.exec('DROP TABLE track_notes');inspect.close();
-  const migrated=openDatabase(f.directory);assert.equal(migrated.prepare('SELECT max(version) AS v FROM schema_version').get().v,6);migrated.close();
+  const migrated=openDatabase(f.directory);assert.equal(migrated.prepare('SELECT max(version) AS v FROM schema_version').get().v,7);migrated.close();
 });

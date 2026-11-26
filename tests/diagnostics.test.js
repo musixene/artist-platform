@@ -341,7 +341,7 @@ test("schema-4 migration is additive, atomic, media safe and repeatable", async 
   const f = await fixture(t);
   await f.login("artist");
   f.db.exec(
-    "DROP TABLE credit_ledger;DROP TABLE qualifying_plays;DROP TABLE play_engagements;ALTER TABLE users DROP COLUMN credit_units;ALTER TABLE users DROP COLUMN credits_unlimited;ALTER TABLE tracks DROP COLUMN price_units;DELETE FROM settings WHERE key='credits_enabled';DELETE FROM schema_version WHERE version=6;DROP TABLE diagnostic_reports;DROP TABLE diagnostic_recordings;DROP TABLE diagnostic_sessions;DELETE FROM settings WHERE key GLOB 'diagnostics_*';DELETE FROM schema_version WHERE version=5",
+    "DROP TABLE article_images;DROP TABLE articles;DROP TABLE social_links;DELETE FROM schema_version WHERE version=7;DROP TABLE credit_ledger;DROP TABLE qualifying_plays;DROP TABLE play_engagements;ALTER TABLE users DROP COLUMN credit_units;ALTER TABLE users DROP COLUMN credits_unlimited;ALTER TABLE tracks DROP COLUMN price_units;DELETE FROM settings WHERE key='credits_enabled';DELETE FROM schema_version WHERE version=6;DROP TABLE diagnostic_reports;DROP TABLE diagnostic_recordings;DROP TABLE diagnostic_sessions;DELETE FROM settings WHERE key GLOB 'diagnostics_*';DELETE FROM schema_version WHERE version=5",
   );
   const tables = f.db
     .prepare(
@@ -384,7 +384,7 @@ test("schema-4 migration is additive, atomic, media safe and repeatable", async 
     const db = openDatabase(f.directory);
     assert.equal(
       db.prepare("SELECT max(version) AS v FROM schema_version").get().v,
-      6,
+      7,
     );
     db.close();
     assert.deepEqual(snapshot(), before);
