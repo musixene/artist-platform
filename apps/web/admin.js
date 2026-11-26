@@ -12,6 +12,7 @@ import { diagnostics } from "./diagnostics.js";
 import { mountDiagnostics } from "./diagnostics-ui.js";
 import { mountFeedbackAdmin } from "./feedback-ui.js";
 const $ = (id) => document.getElementById(id);
+let listeningRender = 0;
 let csrf = "",
   state,
   saving = false;
@@ -171,6 +172,7 @@ function render() {
     "collection-list",
   ])
     $(id).replaceChildren();
+  renderListening();
   renderSettings();
   renderInvitations();
   renderUsers();
@@ -356,6 +358,48 @@ function renderUsers() {
     password.minLength = 12;
     password.maxLength = 128;
     edit.finish();
+    const credits = form(
+      card,
+      async () => {
+        await api("/api/admin/listening/listener", {
+          userId: user.id,
+          requestId: requestId,
+          unlimited: unlimited.checked,
+          amount: amount.value,
+          subtract: subtract.checked,
+          reason: reason.value,
+        });
+        await refresh();
+      },
+      "Save listener credits",
+    );
+    const requestId = crypto.randomUUID();
+    help(
+      credits.f,
+      `Balance: ${user.account.balanceUnits / 1000} credits · Held: ${user.account.heldUnits / 1000} · Available: ${user.account.availableUnits / 1000}`,
+    );
+    const unlimited = field(
+      credits.f,
+      "Unlimited credits (artist-approved)",
+      user.account.unlimited,
+      "checkbox",
+    );
+    const amount = field(
+      credits.f,
+      "Credit adjustment (0 to change unlimited only)",
+      "0",
+    );
+    amount.inputMode = "decimal";
+    const subtract = field(
+      credits.f,
+      "Subtract adjustment instead of grant",
+      false,
+      "checkbox",
+    );
+    const reason = field(credits.f, "Reason for credit or eligibility change");
+    reason.required = true;
+    reason.maxLength = 200;
+    credits.finish();
   }
 }
 function renderTracks() {
@@ -405,6 +449,7 @@ function renderTracks() {
         content_type: type.value,
         genres: splitTerms(genres.value),
         tags: splitTerms(tags.value),
+        price: price.value,
       });
       await refresh();
     });
@@ -419,6 +464,17 @@ function renderTracks() {
       ),
       order = field(info, "Position", track.position, "number"),
       remove = field(info, "Remove artwork", false, "checkbox");
+    const price = field(
+      info,
+      "Credits per qualifying play (0 = free)",
+      String(track.price_units / 1000),
+    );
+    price.inputMode = "decimal";
+    price.pattern = "[0-9]+(\\.[0-9]{1,3})?";
+    help(
+      info,
+      "Charged once after 60 seconds of observed playback. Tracks shorter than one minute never qualify. Unlimited listeners are never charged.",
+    );
     title.required = artist.required = true;
     title.maxLength = 200;
     artist.maxLength = 100;
@@ -649,4 +705,72 @@ try {
   status("Ready.");
 } catch (error) {
   status(error.message);
+}
+
+async function renderListening() {
+  const renderId = ++listeningRender;
+  const root = $("listening-admin");
+  root.replaceChildren();
+  try {
+    const data = await api("/api/admin/listening");
+    if (!root.isConnected || renderId !== listeningRender) return;
+    help(
+      root,
+      "A qualifying play is 60 seconds of observed playback within one engagement, not proof of a complete listen. Pauses and resumes share the engagement. No skip analytics. Only the last 90 days of play analytics are retained.",
+    );
+    const settings = form(
+      root,
+      async () => {
+        await api("/api/admin/listening/settings", {
+          enabled: enabled.checked,
+        });
+        await refresh();
+      },
+      "Save charging policy",
+    );
+    const enabled = field(
+      settings.f,
+      "Enable credit charging",
+      data.enabled,
+      "checkbox",
+    );
+    help(
+      settings.f,
+      "Set track prices and grant balances or unlimited eligibility before enabling. Existing tracks start free; unlimited listeners still produce qualifying plays.",
+    );
+    settings.finish();
+    const table = el("table"),
+      caption = el("caption", "Qualifying plays by track — last 90 days");
+    table.append(caption);
+    const head = el("tr");
+    for (const label of ["Track", "Qualifying plays"]) {
+      const th = el("th", label);
+      th.scope = "col";
+      head.append(th);
+    }
+    table.append(head);
+    for (const track of data.tracks) {
+      const row = el("tr");
+      row.append(el("td", track.title), el("td", String(track.plays)));
+      table.append(row);
+    }
+    root.append(table);
+    const days = el("details");
+    days.append(el("summary", "Daily qualifying plays (UTC)"));
+    for (const day of data.daily)
+      days.append(el("p", `${day.day}: ${day.plays}`));
+    root.append(days);
+    const ledger = el("details");
+    ledger.append(el("summary", "Recent credit audit entries (up to 100)"));
+    for (const entry of data.ledger)
+      ledger.append(
+        el(
+          "p",
+          `${new Date(entry.created_at).toLocaleString()} · ${entry.username} · ${entry.delta_units / 1000} credits · ${entry.reason}`,
+        ),
+      );
+    root.append(ledger);
+  } catch (error) {
+    root.textContent = error.message;
+  }
 }

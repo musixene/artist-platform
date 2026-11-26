@@ -28,8 +28,8 @@ async function ready() {
       const r = await fetch(base + "/api/health");
       if (r.ok) {
         const health = await r.json();
-        assert.equal(health.schema, 5);
-        assert.equal(health.version, "0.3.2");
+        assert.equal(health.schema, 6);
+        assert.equal(health.version, "0.4.0");
         return;
       }
     } catch {}
@@ -144,7 +144,28 @@ try {
       content_type: "music",
       genres: ["Soul"],
       tags: ["Driving"],
+      price: "0.125",
     },
+  });
+  const creditRequestId = randomUUID();
+  const creditGrant = {
+    userId: listener.user.id,
+    requestId: creditRequestId,
+    amount: "12.345",
+    unlimited: true,
+    reason: "Synthetic persistent unlimited grant",
+  };
+  await json("/api/admin/listening/listener", {
+    auth: admin,
+    data: creditGrant,
+  });
+  await json("/api/admin/listening/listener", {
+    auth: admin,
+    data: creditGrant,
+  });
+  await json("/api/admin/listening/settings", {
+    auth: admin,
+    data: { enabled: true },
   });
   const dynamic = await json("/api/admin/collections", {
     auth: admin,
@@ -252,6 +273,21 @@ try {
   );
   const restored = await json("/api/catalog", { auth: listener });
   assert.equal(restored.tracks.length, 2);
+  assert.equal(restored.account.unlimited, true);
+  assert.equal(restored.account.balanceUnits, 12345);
+  assert.equal(restored.account.enabled, true);
+  assert.equal(restored.tracks.find((t) => t.id === first.id).price_units, 125);
+  const listeningExport = await json("/api/listening/export", {
+    auth: listener,
+  });
+  assert.equal(
+    listeningExport.ledger.filter((e) => e.id === creditRequestId).length,
+    1,
+  );
+  assert.equal(
+    (await request("/api/admin/listening", { auth: listener })).status,
+    403,
+  );
   assert.equal(restored.tracks.find((t) => t.id === first.id).liked, 1);
   assert.deepEqual(
     restored.catalogs.find((c) => c.id === dynamic.id).trackIds,
@@ -272,7 +308,7 @@ try {
   assert.equal(after.status, 206);
   assert.deepEqual(Buffer.from(await after.arrayBuffer()), bytes);
   console.log(
-    "Container smoke passed: version 0.3.2/schema 5, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics and restart persistence.",
+    "Container smoke passed: version 0.4.0/schema 6, non-root/read-only, private range playback, metadata/dynamic catalog, branding, feedback, private diagnostics, exact credits/unlimited audit and restart persistence.",
   );
 } finally {
   try {

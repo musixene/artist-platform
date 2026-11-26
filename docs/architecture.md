@@ -1,6 +1,6 @@
 # Architecture proposal
 
-Status: reference architecture and renewable-allowance metering direction accepted. The first installation/authentication/player/PWA implementation exists; no credit deductions or reservations are implemented. Detailed metering protocol remains under investigation.
+Status: the single-artist Node/SQLite modular monolith is preserved. The 0.4 review candidate implements the approved 60-second qualifying-play policy, replacing the earlier proportional/renewable-allowance direction. See [accounting details and limitations](credit-metering-review.md).
 
 ## Deployment model
 
@@ -32,7 +32,7 @@ Media delivery may use an authorized gateway or scoped storage grants. The diagr
 | Deployment | Container-based reference deployment | Operators control TLS, persistent volumes, upgrades, and recovery. Exact runtime/framework and resource targets remain to be selected. |
 | Streaming | Authenticated HTTP byte ranges | Delivery/preloading does not establish playback time. Tight buffer control is difficult; do not bill by bytes or requests. |
 | Accounts/configuration | Local accounts and artist-controlled settings | Operator administrator bootstrap/recovery, invite-only signup and saved registration/branding settings are implemented; optional email remains outside this phase. |
-| Credits | Proportional per-minute metered consumption, including zero/fractional rates | Renewable allowances with incremental reconciliation accepted for investigation; detailed measurement/settlement protocol remains unresolved. No fixed session fee. |
+| Credits | Fixed price once after 60 seconds observed per engagement; explicit unlimited eligibility | Charging defaults off. Integer units, atomic holds/settlement and append-only adjustments; client evidence is best-effort, not DRM. |
 | Mobile | PWA using standard audio and Media Session APIs | Real-device feasibility and supported versions remain to be validated. |
 | License | CPAL 1.0 adopted | The project LICENSE specifies required attribution and source availability; license compatibility and release compliance need continued review. |
 
@@ -40,25 +40,23 @@ SQLite is appropriate for transactional accounting when each reservation, settle
 
 ## Private playback and mobile behavior
 
-Authorize each session against account access, content availability, rate, and balance. Issue short-lived content-scoped grants bound to that session; recheck on renewal. Support seeking/range retries without charging for each request. Prefer same-origin secure cookies. Signed URLs, if selected, must be short-lived and excluded from logs, analytics, and referrers. Define the revocation window: expired grants or an active gateway check stop future delivery, but cannot retrieve bytes already delivered. Authenticated streaming is not DRM or prevention of recording.
+Cookie authentication and track visibility protect private byte-range media. Credit authorization/holds occur separately in the normal player, and qualifying reports settle once; media GET/range requests never incur charges. Modified authenticated clients can bypass normal-player credit enforcement, and downloaded bytes cannot be recalled. See the accounting specification for this material limitation and the no-invented-listening policy.
 
 Cache only the application shell and public branding in the service worker. Do not cache private audio, tokens, balances, feedback, or authenticated API responses. Offline audio is outside initial scope.
 
 Use standard audio playback and Media Session handlers where supported. Verify Android and iOS installation, screen lock, app switching, interruptions, seeking, and Bluetooth controls on real devices. A service worker cannot keep audio alive indefinitely. Publish tested versions, limitations, and browser playback fallbacks rather than promising uniform behavior.
 
-## Metered credits and commerce — design unresolved
+## Qualifying-play credits and optional commerce
 
-The approved business requirement is consumption proportional to actual playback duration at each content item's artist-configurable credits-per-minute rate. Rates may be zero or fractional; public releases may cost 1/20 of an exclusive item's rate. Paused, buffering, and skipped time must not be billed. Replayed audio consumes credits again for its actual playback duration. A playback session is an accounting identity, not a fixed-charge unit.
+The 2026-11-26 approved rule is one fixed charge and one qualifying play after 60 seconds of observed playback per unique engagement. Pauses/resumes retain the engagement; selections, queue advancement and repeat-one restart begin new engagements. Short tracks, free prices and unlimited listeners never incur a debit. The previous per-minute/renewable protocol is superseded. See [the implemented accounting specification](credit-metering-review.md) for integer precision, atomic holds/settlement, idempotency, price snapshots, expiry, retention and uncertainty.
 
-[Metering approaches and recommendation](credit-metering-review.md) evaluates reservations, incremental consumption, reconciliation, event loss, mobile suspension, and auditability. Renewable playback allowances with incremental reconciliation are accepted for further investigation. Detailed protocol parameters remain proposals; no deductions are implemented. Accounting-related browser suspension must not unnecessarily interrupt background audio. In particular, duration measurement, uncertain intervals, reservation expiry, rounding, and settlement policy require approval before credit implementation.
-
-Begin with audited manual credit grants and adjustments. Optional commerce adapters later translate verified provider events into idempotent grants and reversals. Verify webhook signatures and reconcile refunds/chargebacks. Do not store card details. Artists own provider accounts, taxes, and business decisions; no payment provider is mandatory.
+No continuous progress/skip event upload or accounting heartbeat is introduced. The supplied player checks finite funds before paid starts; later reporting failures do not pause ongoing audio. The existing cookie/visibility-protected media endpoint remains unchanged and is not an enforcement boundary against modified authenticated clients. Commerce remains future work, with no processor or payment dependency in this release.
 
 ## Data, privacy, and security
 
 Model accounts/roles, artist settings, media, content, ordered collections, rate versions, playback sessions, ledger entries, likes, private feedback, and audit events. Separate product analytics from billing evidence. Report delivery activity separately from client-reported playback estimates and accepted metering evidence; none proves human attention.
 
-Feedback is visible only to its author and authorized artist administrators. Likes and listener activity are private by default. Feedback uses schema-3 tables with caller-only access, private paginated administrator review, and explicit deletion/export controls; see [privacy policy](privacy.md). Define analytics events and their separate retention/export policy before analytics implementation. Ledger integrity may require pseudonymization rather than deleting transaction history; review applicable obligations. No third-party tracking by default.
+Feedback is visible only to its author and authorized artist administrators. Likes and listener activity are private by default. Feedback uses schema-3 tables with caller-only access, private paginated administrator review, and explicit deletion/export controls; see [privacy policy](privacy.md). Qualifying-play analytics use a 90-day private retention window with own export and identity unlinking; financial audit records are retained separately. Ledger integrity may require pseudonymization rather than deleting transaction history; review applicable obligations. No third-party tracking by default.
 
 Require TLS, secure HttpOnly sessions, CSRF protection, password hashing, role/object authorization, rate limits, upload validation, size/format limits, isolated media processing, redacted logs, and dependency updates. Define account recovery and session invalidation. Never place secrets in source, client bundles, routine exports, or logs.
 
@@ -70,13 +68,13 @@ Use SQLite-supported backup procedures or stop the application for a consistent 
 
 ## Review gate
 
-The deployment baseline above is approved. Remaining decisions are framework/runtime selection, metering protocol and uncertainty policy, platform support matrix, authentication/recovery, privacy/retention/export policy, and license/attribution requirements. Record accepted choices as architectural decision records. The installation, authentication, player, and PWA phase is authorized and implemented. Credit deductions and production access are not authorized.
+The deployment baseline above is approved. Remaining decisions are framework/runtime selection, metering protocol and uncertainty policy, platform support matrix, authentication/recovery, privacy/retention/export policy, and license/attribution requirements. Record accepted choices as architectural decision records. The installation, authentication, player, and PWA phase is authorized and implemented. The 0.4 feature implementation is authorized; charging activation, merge and production access remain separate operator decisions.
 
 ## First functional implementation
 
 Node.js 24 LTS supplies the HTTP server, scrypt cryptography, and built-in SQLite. Plain browser modules avoid a frontend build pipeline. `apps/server` owns authentication/catalog/private range delivery; `apps/web` owns the persistent audio element, queue, Media Session handlers, and public-shell service worker. `packages/domain/accounting.js` defines a replaceable playback-authorization boundary whose current implementation always allows authenticated playback without charge or browser renewal. Operator scripts generate synthetic audio, import trusted tracks, and create/reset listeners. Framework/runtime selection for this phase is Node 24 with no production npm dependencies.
 
-API: public `GET /api/health` and `/api/config`; origin-checked `POST /api/register` and `/api/login`; authenticated `GET /api/me`, `/api/tracks`, `/api/tracks/:id/audio`; origin/CSRF-checked `POST /api/logout`. Audio supports GET/HEAD and single byte ranges. Sessions last 30 days and are revoked by logout/reset. There is no credit/analytics submission endpoint. See [operations](operations/running.md) and [validation](validation.md) for limitations and test evidence.
+API: public `GET /api/health` and `/api/config`; origin-checked `POST /api/register` and `/api/login`; authenticated `GET /api/me`, `/api/tracks`, `/api/tracks/:id/audio`; origin/CSRF-checked `POST /api/logout`. Audio supports GET/HEAD and single byte ranges. Sessions last 30 days and are revoked by logout/reset. The 0.4 listening service adds owner-scoped start/qualify/close, account/export/erase endpoints and administrator-only policy, eligibility, grants and aggregate reports. See [operations](operations/running.md) and [validation](validation.md) for limitations and test evidence.
 
 ## Player/catalog architecture (schema 4)
 

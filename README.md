@@ -1,6 +1,6 @@
 # Musixene Artist Platform
 
-An independently operated, artist-branded listening room. Version 0.2 introduces a player-first listening room: one persistent full player, compact catalog browsing, curated and dynamic catalogs, private active-track Likes/Note to Artist, and administrator-controlled artist/PWA identity. Existing accounts, invitations, private uploads and streaming remain supported. **Listening credits are disabled; no deductions or reservations occur.**
+An independently operated, artist-branded listening room. Version 0.2 introduces a player-first listening room: one persistent full player, compact catalog browsing, curated and dynamic catalogs, private active-track Likes/Note to Artist, and administrator-controlled artist/PWA identity. Existing accounts, invitations, private uploads and streaming remain supported. **Version 0.4 adds qualifying-play analytics and fixed per-play credits, with charging disabled by default.**
 
 Musixene is an existing music platform that believes in creative independence and artistic ownership. It is contributing independently deployable software for supplemental virtual sidestreet marketplaces and artist–fan creative feedback ecosystems. Artists operate their own instances on infrastructure of their choosing. Musixene is not a SaaS provider, nonprofit organization, hosting service, or technical support provider.
 
@@ -14,7 +14,7 @@ Musixene is an existing music platform that believes in creative independence an
 - Configurable artist name, optional wordmark/tagline, header logo, favicon, installed icons, PWA names and accent; container-based reference deployment. No mandatory Musixene infrastructure or external fonts, trackers, identity, or storage services.
 - Service worker caches only the public shell. No offline audio or caching of private APIs/media. PWA installation requires a secure context and browser support.
 
-PostgreSQL and object storage are optional future expansion paths. Listeners can like tracks and send private Note to Artist feedback; administrators can filter and review it. Browsing catalogs or the Store placeholder keeps audio and the established queue intact; selecting a row establishes that catalog’s queue. Store and Credits Available are clearly marked Coming Soon, without products, balances or transactions. See [redesign behavior and migration details](docs/player-redesign.md) and [privacy and feedback controls](docs/privacy.md) for deletion, export and retention behavior. This phase does not include analytics dashboards, commerce, or credit metering. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
+PostgreSQL and object storage are optional future expansion paths. Listeners can like tracks and send private Note to Artist feedback; administrators can filter and review it. Browsing catalogs or the Store placeholder keeps audio and the established queue intact; selecting a row establishes that catalog’s queue. Store remains Coming Soon. Credits show the listener’s available balance or artist-approved Unlimited status when charging is enabled. One engagement qualifies after 60 seconds of observed playback, generating one analytic play and at most one fixed track charge; skips are not tracked. See [redesign behavior and migration details](docs/player-redesign.md) and [privacy and feedback controls](docs/privacy.md) for deletion, export and retention behavior. The private administrator dashboard includes qualifying plays by track/day, manual credit adjustments and unlimited eligibility. Commerce is not implemented. See [the qualifying-play and credit specification](docs/credit-metering-review.md) for privacy, safe defaults and enforcement limitations. Operator CLI tools import media and manage accounts. This is an initial development implementation, not a production-readiness claim.
 
 ## Run locally
 
@@ -51,11 +51,11 @@ If Chromium is already installed, use `CHROMIUM_PATH=/path/to/chromium npm run t
 
 - [Architecture](docs/architecture.md)
 - [Repository structure](docs/repository-structure.md)
-- [Accepted metering direction; protocol still under investigation](docs/credit-metering-review.md)
+- [Qualifying plays and fixed-price credit accounting](docs/credit-metering-review.md)
 - [Requirements](docs/requirements.md)
 - [Roadmap](docs/roadmap.md)
 
-Renewable playback allowances and incremental reconciliation are accepted for further investigation, not implemented. Listener-favorable uncertainty remains required. Accounting must not unnecessarily interrupt background playback because browser callbacks are suspended.
+The approved 60-second qualifying-play policy replaces the earlier proportional per-minute proposal. Listener-favorable uncertainty remains required: missing background observations produce no invented charge, and report failures do not pause ongoing playback.
 
 ## Boundaries, license, and attribution
 

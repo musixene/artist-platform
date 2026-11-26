@@ -52,8 +52,8 @@ test('version-1 migration preserves accounts, sessions, catalog and audio bytes,
     mkdirSync(join(directory,'media'));const audio=Buffer.from('ID3 synthetic legacy bytes');writeFileSync(join(directory,'media','original.mp3'),audio);
     for(let i=0;i<2;i++) {
       db=openDatabase(directory);
-      assert.equal(db.prepare('SELECT max(version) AS v FROM schema_version').get().v,5);
-      const user=db.prepare('SELECT * FROM users').get();assert.deepEqual({...user,role:undefined,disabled:undefined},{...oldUser,role:undefined,disabled:undefined});assert.equal(user.role,'listener');assert.equal(user.disabled,0);
+      assert.equal(db.prepare('SELECT max(version) AS v FROM schema_version').get().v,6);
+      const user=db.prepare('SELECT * FROM users').get();assert.deepEqual({...user,role:undefined,disabled:undefined,credit_units:undefined,credits_unlimited:undefined},{...oldUser,role:undefined,disabled:undefined,credit_units:undefined,credits_unlimited:undefined});assert.equal(user.role,'listener');assert.equal(user.disabled,0);
       assert.deepEqual(db.prepare('SELECT * FROM sessions').get(),oldSession);
       const track=db.prepare('SELECT * FROM tracks').get();for(const [key,value] of Object.entries(oldTrack))assert.equal(track[key],value);assert.equal(track.visible,1);
       db.close();assert.deepEqual(readFileSync(join(directory,'media','original.mp3')),audio);

@@ -1429,3 +1429,12 @@ dialog {
   flex: none;
   min-height: auto;
 }
+
+.credits #credits-held { display:block; max-width:240px; font-size:11px; margin-top:4px; color:var(--muted); }
+#listening-admin table { width:100%; border-collapse:collapse; text-align:left; }
+#listening-admin th, #listening-admin td { padding:8px; border-bottom:1px solid var(--line); }
+#listening-admin details p { overflow-wrap:anywhere; }
+
+#now-price:empty { display:none; }
+#now-price { margin:4px 0; grid-column:2; line-height:1.4; }
+@media (max-width:650px) { #now-price { grid-column:1/-1; } }

@@ -10,6 +10,7 @@
  */
 import { trackFeedback, mountFeedbackData } from "./feedback-ui.js";
 import { diagnostics } from "./diagnostics.js";
+import { mountListening } from "./listening.js";
 import { mountListeningTips } from "./listening-tips.js";
 import { PlaybackQueue } from "./player.js";
 const $ = (id) => document.getElementById(id),
@@ -99,6 +100,7 @@ function authMode() {
   $("invitation").hidden = $("invitation-label").hidden = !register;
 }
 function signedOut() {
+  listening.session(null, null);
   diagnostics.clear({ ownedOnly: true }).catch(() => {});
   sessionGeneration++;
   for (const root of feedbackRoots.values())
@@ -141,6 +143,7 @@ async function signedIn(data) {
   if (generation !== sessionGeneration) return;
   tracks = new Map(library.tracks.map((t) => [t.id, t]));
   catalogs = library.catalogs;
+  listening.session(data.user.id, library.account);
   likes.clear();
   for (const track of library.tracks) likes.set(track.id, Boolean(track.liked));
   $("auth").hidden = true;
@@ -202,7 +205,7 @@ function renderTracks() {
         title.append(badge);
       }
       const artist = document.createElement("small");
-      artist.textContent = track.artist;
+      artist.textContent = `${track.artist}${config.account?.enabled ? (config.account.unlimited ? " · Unlimited" : ` · ${track.price_units / 1000} credits / qualifying play`) : ""}`;
       info.append(title, artist);
       const action = document.createElement("span");
       action.className = "track-action";
@@ -295,6 +298,15 @@ function playbackState() {
     repeat,
   };
 }
+function showPrice() {
+  const track = tracks.get(activeId);
+  $("now-price").textContent =
+    !track || !config.account?.enabled
+      ? ""
+      : config.account.unlimited
+        ? "Unlimited listening · no credit charge"
+        : `${track.price_units / 1000} credits after 60s · charged once per engagement`;
+}
 function recordPlayback(event, extra = {}) {
   diagnostics.event("playback", event, () => ({
     ...playbackState(),
@@ -303,6 +315,11 @@ function recordPlayback(event, extra = {}) {
 }
 async function play() {
   if (!activeId) return;
+  const expectedId = activeId,
+    expectedSession = sessionGeneration;
+  const authorization = listening.prepare();
+  if (authorization && !(await authorization)) return;
+  if (expectedId !== activeId || expectedSession !== sessionGeneration) return;
   const operation = diagnostics.media.playRequested(
     activeId,
     tracks.get(activeId)?.mime,
@@ -336,6 +353,7 @@ function activate(id, { autoplay = true, restart = false } = {}) {
       oldRoot = feedbackRoots.get(activeId),
       noteWasOpen = Boolean(oldRoot?.querySelector("dialog")?.open);
     const changed = activeId !== id;
+    if (changed || restart) listening.select(track);
     if (changed) oldRoot?.querySelector("dialog")?.close();
     activeId = id;
     queue.currentId = id;
@@ -349,6 +367,7 @@ function activate(id, { autoplay = true, restart = false } = {}) {
     } else if (restart) audio.currentTime = 0;
     $("now-title").textContent = track.title;
     $("now-artist").textContent = track.artist;
+    showPrice();
     $("now-explicit").hidden = track.explicit_status !== "explicit";
     $("artwork").onerror = () => {
       $("artwork").onerror = null;
@@ -709,5 +728,62 @@ async function boot() {
     message(error.message);
   }
 }
+const listening = mountListening({
+  audio,
+  api,
+  onMessage: message,
+  onAccount: (account) => {
+    config.account = account;
+    showPrice();
+    $("credits-value").textContent = !account.enabled
+      ? "Charging off"
+      : account.unlimited
+        ? "Unlimited"
+        : `${(account.availableUnits / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} credits`;
+    $("credits-held").textContent =
+      account.enabled && !account.unlimited && account.heldUnits
+        ? `${account.heldUnits / 1000} held; released on leaving or within 24h if interrupted`
+        : "60 seconds of playback = one qualifying play";
+  },
+});
 mountListeningTips(document);
 boot();
+
+$("export-listening").addEventListener("click", async () => {
+  const g = sessionGeneration;
+  try {
+    const result = { plays: [], ledger: [], account: null };
+    let offset = 0;
+    do {
+      const page = await api(`/api/listening/export?offset=${offset}`);
+      if (g !== sessionGeneration) return;
+      result.plays.push(...page.plays);
+      result.ledger.push(...page.ledger);
+      result.account = page.account;
+      offset = page.nextOffset;
+    } while (offset !== null);
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(result, null, 2)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "my-listening-and-credits.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    if (g === sessionGeneration)
+      $("listening-data-status").textContent = error.message;
+  }
+});
+$("erase-listening").addEventListener("click", async () => {
+  const g = sessionGeneration;
+  try {
+    await api("/api/listening/erase", { method: "POST", body: "{}" });
+    if (g === sessionGeneration)
+      $("listening-data-status").textContent =
+        "Existing qualifying plays are no longer linked to your identity in analytics. Totals and financial audit records are retained. Future qualifying plays will be recorded.";
+  } catch (error) {
+    if (g === sessionGeneration)
+      $("listening-data-status").textContent = error.message;
+  }
+});
