@@ -9,7 +9,7 @@
  * Portions written by Musixene: Copyright (c) 2026 Musixene. All Rights Reserved.
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
+import { mkdir, open, readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { validateBrandingPNG } from "./branding.js";
 import {
@@ -212,11 +212,10 @@ export function editorialService(db, config, now = () => Date.now()) {
       const filename = randomUUID() + ".png",
         id = randomUUID();
       await mkdir(directory, { recursive: true, mode: 0o700 });
-      await writeFile(join(directory, filename), bytes, {
-        flag: "wx",
-        mode: 0o600,
-      });
+      const file = await open(join(directory, filename), "wx", 0o600);
       try {
+        await file.writeFile(bytes);
+        await file.sync();
         authorize();
         tx(db, () => {
           const row = article(db, articleRoute[1]);
@@ -239,6 +238,8 @@ export function editorialService(db, config, now = () => Date.now()) {
       } catch (error) {
         await removeFile(filename);
         throw error;
+      } finally {
+        await file.close();
       }
       return json(res, 201, {
         article: view(db, article(db, articleRoute[1]), true),

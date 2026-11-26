@@ -10,7 +10,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fixture } from "./fixture.js";
 import { png } from "./png.js";
@@ -153,6 +153,18 @@ test("published ordering uses Top Pin, standard Pins and publication date with s
 });
 test("Top Pin conflicts require an explicit choice and expected occupant; replacement/demotion is atomic, stale choices fail", async (t) => {
   const f = await setup(t);
+  const draft = await f.create("Unpublished candidate");
+  assert.equal(
+    (await f.mutate(draft, "prominence", { prominence: "top" })).status,
+    409,
+  );
+  assert.throws(
+    () =>
+      f.db
+        .prepare("UPDATE articles SET prominence='top' WHERE id=?")
+        .run(draft.id),
+    /CHECK/,
+  );
   let a = await f.create("Existing top"),
     b = await f.create("Candidate");
   a = (await f.mutate(a, "publish")).value.article;
@@ -530,6 +542,118 @@ test("schema-6 migration is additive, atomic and repeatable, preserving all exis
     unlimited: true,
     reason: "Synthetic preserved grant",
   });
+  // Populate every deployed subsystem with synthetic records before taking the v6 snapshot.
+  await f.call("/api/admin/settings", {
+    name: "Preserved synthetic artist",
+    tagline: "Preserved branding",
+    accent: "#b8ef70",
+    registration: false,
+  });
+  await f.call("/api/admin/invitations", {
+    username: "future-listener",
+    hours: 24,
+  });
+  await f.call("/api/admin/collections", {
+    title: "Preserved ordered collection",
+    visible: true,
+    position: 0,
+    trackIds: f.tracks.map((t) => t.id),
+  });
+  await f.call(
+    `/api/feedback/tracks/${f.tracks[0].id}/like`,
+    { liked: true },
+    f.alice,
+  );
+  await f.call(
+    `/api/feedback/tracks/${f.tracks[0].id}/notes`,
+    {
+      body: "Preserved synthetic private note",
+      requestId: crypto.randomUUID(),
+    },
+    f.alice,
+  );
+  await f.call("/api/admin/listening/listener", {
+    userId: f.alice.user.id,
+    requestId: crypto.randomUUID(),
+    amount: "0",
+    unlimited: false,
+    reason: "Synthetic metering eligibility",
+  });
+  await f.call("/api/admin/listening/settings", { enabled: true });
+  f.db
+    .prepare("UPDATE tracks SET price_units=1250 WHERE id=?")
+    .run(f.tracks[0].id);
+  const engagement = crypto.randomUUID();
+  await f.call(
+    "/api/listening/start",
+    {
+      id: engagement,
+      trackId: f.tracks[0].id,
+      durationMs: 120000,
+      expectedPriceUnits: 1250,
+      expectedCharging: true,
+    },
+    f.alice,
+  );
+  f.db
+    .prepare("UPDATE play_engagements SET started_at=? WHERE id=?")
+    .run(Date.now() - 61000, engagement);
+  assert.equal(
+    (
+      await f.call(
+        "/api/listening/qualify",
+        { id: engagement, playedMs: 60000 },
+        f.alice,
+      )
+    ).status,
+    200,
+  );
+  const reportId = crypto.randomUUID();
+  const report = JSON.parse(
+    readFileSync(
+      new URL("./fixtures/media-http-failure.example.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  report.recordingId = reportId;
+  const content = JSON.stringify(report),
+    uploadedAt = Date.now();
+  const metadata = {
+    id: reportId,
+    recordingId: reportId,
+    startedAt: report.startedAt,
+    endedAt: report.endedAt,
+    uploadedAt: new Date(uploadedAt).toISOString(),
+    durationMs: report.durationMs,
+    reason: report.reason,
+    eventCount: report.events.length,
+    sizeBytes: Buffer.byteLength(content),
+    categories: [...new Set(report.events.map((e) => e.category))],
+    reportVersion: report.reportVersion,
+    applicationVersion: report.applicationVersion,
+    browser: report.browser,
+    status: "Saved",
+  };
+  f.db
+    .prepare("INSERT INTO diagnostic_reports VALUES(?,?,?,?,?)")
+    .run(
+      reportId,
+      f.admin.user.id,
+      uploadedAt,
+      JSON.stringify(metadata),
+      content,
+    );
+  mkdirSync(join(f.directory, "branding"), { recursive: true });
+  const logo = crypto.randomUUID() + ".png";
+  writeFileSync(join(f.directory, "branding", logo), png(64, 64));
+  f.db
+    .prepare("INSERT INTO settings VALUES(?,?)")
+    .run("logo", JSON.stringify(logo));
+  const art = crypto.randomUUID() + ".png";
+  writeFileSync(join(f.directory, "media", art), png(64, 64));
+  f.db
+    .prepare("UPDATE tracks SET artwork=? WHERE id=?")
+    .run(art, f.tracks[0].id);
   f.db.exec(
     "DROP TABLE article_images;DROP TABLE articles;DROP TABLE social_links;DELETE FROM schema_version WHERE version=7;",
   );
@@ -548,10 +672,12 @@ test("schema-6 migration is additive, atomic and repeatable, preserving all exis
       );
   const before = snapshot();
   const media = Object.fromEntries(
-    readdirSync(join(f.directory, "media")).map((name) => [
-      name,
-      readFileSync(join(f.directory, "media", name)),
-    ]),
+    ["media", "branding"].flatMap((folder) =>
+      readdirSync(join(f.directory, folder)).map((name) => [
+        folder + "/" + name,
+        readFileSync(join(f.directory, folder, name)),
+      ]),
+    ),
   );
   f.db.exec("CREATE TABLE social_links(conflict TEXT)");
   assert.throws(() => openDatabase(f.directory), /already exists/);
@@ -577,5 +703,50 @@ test("schema-6 migration is additive, atomic and repeatable, preserving all exis
       assert.deepEqual(after[table], before[table]);
   }
   for (const [name, bytes] of Object.entries(media))
-    assert.deepEqual(readFileSync(join(f.directory, "media", name)), bytes);
+    assert.deepEqual(readFileSync(join(f.directory, name)), bytes);
+});
+
+test("Top Pin replacement rolls back both articles on failure and concurrent replacements honor the expected occupant", async (t) => {
+  const f = await setup(t);
+  let top = await f.create("Original top");
+  top = (await f.mutate(top, "publish")).value.article;
+  top = (await f.mutate(top, "prominence", { prominence: "top" })).value
+    .article;
+  const candidates = [];
+  for (const title of ["Candidate A", "Candidate B"]) {
+    const draft = await f.create(title);
+    candidates.push((await f.mutate(draft, "publish")).value.article);
+  }
+  const before = f.db.prepare("SELECT * FROM articles ORDER BY id").all();
+  f.db.exec(
+    "CREATE TRIGGER synthetic_top_failure BEFORE UPDATE ON articles WHEN NEW.prominence='top' AND OLD.prominence!='top' BEGIN SELECT RAISE(ABORT,'synthetic pin failure'); END;",
+  );
+  const data = {
+    prominence: "top",
+    resolution: "replace",
+    expectedTopId: top.id,
+    expectedTopRevision: top.revision,
+  };
+  assert.equal((await f.mutate(candidates[0], "prominence", data)).status, 500);
+  assert.deepEqual(
+    f.db.prepare("SELECT * FROM articles ORDER BY id").all(),
+    before,
+  );
+  f.db.exec("DROP TRIGGER synthetic_top_failure");
+  const results = await Promise.all(
+    candidates.map((row) => f.mutate(row, "prominence", data)),
+  );
+  assert.deepEqual(results.map((r) => r.status).sort(), [200, 409]);
+  assert.equal(
+    f.db
+      .prepare("SELECT count(*) AS n FROM articles WHERE prominence='top'")
+      .get().n,
+    1,
+  );
+  const original = f.db
+    .prepare("SELECT * FROM articles WHERE id=?")
+    .get(top.id);
+  assert.equal(original.prominence, "pin");
+  assert.equal(original.published_at, top.published_at);
+  assert.equal(original.updated_at, top.updated_at);
 });

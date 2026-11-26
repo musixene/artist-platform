@@ -10,6 +10,7 @@
  */
 import { trackFeedback, mountFeedbackData } from "./feedback-ui.js";
 import { diagnostics } from "./diagnostics.js";
+import { mountEditorialReader } from "./editorial-ui.js";
 import { mountListening } from "./listening.js";
 import { mountListeningTips } from "./listening-tips.js";
 import { PlaybackQueue } from "./player.js";
@@ -100,6 +101,7 @@ function authMode() {
   $("invitation").hidden = $("invitation-label").hidden = !register;
 }
 function signedOut() {
+  editorialReader.clear();
   listening.session(null, null);
   diagnostics.clear({ ownedOnly: true }).catch(() => {});
   sessionGeneration++;
@@ -136,6 +138,7 @@ function signedOut() {
 }
 async function signedIn(data) {
   const generation = ++sessionGeneration;
+  editorialReader.clear();
   csrf = data.csrf;
   await diagnostics.initialize(data).catch(() => {});
   $("diagnostics-link").hidden = data.user.role !== "administrator";
@@ -465,9 +468,13 @@ function previous() {
 }
 const modes = {
   player: { button: "player-mode", view: "player-view" },
+  blog: { button: "blog-mode", view: "blog-view" },
+  social: { button: "social-mode", view: "social-view" },
   store: { button: "store-mode", view: "store-view" },
 };
 function mode(name) {
+  if (!modes[name]) return;
+  editorialReader.show(name);
   for (const [key, section] of Object.entries(modes)) {
     $(section.view).hidden = key !== name;
     $(section.button).setAttribute("aria-pressed", String(key === name));
@@ -475,6 +482,8 @@ function mode(name) {
 }
 $("collection-filter").addEventListener("change", renderTracks);
 $("player-mode").addEventListener("click", () => mode("player"));
+$("blog-mode").addEventListener("click", () => mode("blog"));
+$("social-mode").addEventListener("click", () => mode("social"));
 $("store-mode").addEventListener("click", () => mode("store"));
 $("return-player").addEventListener("click", () => mode("player"));
 $("auth-form").addEventListener("submit", async (event) => {
@@ -728,6 +737,11 @@ async function boot() {
     message(error.message);
   }
 }
+const editorialReader = mountEditorialReader({
+  blogRoot: $("blog-content"),
+  socialRoot: $("social-content"),
+  api,
+});
 const listening = mountListening({
   audio,
   api,

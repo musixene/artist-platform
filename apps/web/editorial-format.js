@@ -52,7 +52,7 @@ export function articleDocument(value) {
     new TextEncoder().encode(JSON.stringify(value)).length > 64000
   )
     throw invalid(
-      "Article body must contain at most 500 blocks and 64000 characters",
+      "Article is too large; use up to 500 paragraphs/list blocks and 64 KB of formatted text",
     );
   const inline = (items) => {
     if (!Array.isArray(items) || items.length > 1000)
